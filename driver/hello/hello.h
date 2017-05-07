@@ -1,4 +1,4 @@
-fndef __HELLO_H
+#ifndef __HELLO_H
 #define __HELLO_H
  
 /** The Hello, World! message. */
