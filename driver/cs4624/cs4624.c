@@ -1232,6 +1232,7 @@ int drv_pause(int sub_dev) {
 /* ======= [Audio interface] Resume DMA ======= */
 int drv_resume(int sub_dev) {
 	/* ### RESUME_DMA ### */
+	
 	dev_resume_dma(dev.base, sub_dev);
 	return OK;
 }
