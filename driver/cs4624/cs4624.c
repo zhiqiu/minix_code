@@ -763,7 +763,7 @@ static void dev_resume_dma(DEV_STRUCT *dev, int sub_dev) {
 /* Read and clear interrupt stats (### READ_CLEAR_INTR_STS ###)
  * -- Return interrupt status */
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
-	status = snd_mychip_peekBA0(dev, BA0_HISR);
+	u32_t status = snd_mychip_peekBA0(dev, BA0_HISR);
 	//sdr_in32(base0, REG_DAC_HDSR);
 	//sdr_in32(base0, REG_ADC_HDSR);
 	snd_mychip_pokeBA0(dev, BA0_HICR, HICR_CHGM | HICR_IEV);
@@ -845,7 +845,7 @@ static int dev_probe(void) {
 		/* get base address of our device, ignore least signif. bit 
 	   this last bit thing could be device dependent, i don't know ??? */
 	for (i = 0; i < 6; i++){
-		dev.base[i] = base = pci_attr_r32(&devind, PCI_BAR + i * 4) & 0xffffffe0;
+		dev.base[i] = base = pci_attr_r32(devind, PCI_BAR + i * 4) & 0xffffffe0;
 		if ((reg = vm_map_phys(SELF, (void *)base, size)) == MAP_FAILED) {
 			printf("SDR: Fail to map hardware registers from PCI\n");
 			return -EIO;
@@ -855,8 +855,8 @@ static int dev_probe(void) {
 	FUNC_LOG();
 #endif
 	dev.name = pci_dev_name(vid, did);
-	dev.irq = pci_attr_r8(&devind, PCI_ILR);
-	dev.revision = pci_attr_r8(&devind, PCI_REV);
+	dev.irq = pci_attr_r8(devind, PCI_ILR);
+	dev.revision = pci_attr_r8(devind, PCI_REV);
 	dev.did = did;
 	dev.vid = vid;
 	dev.devind = devind;
