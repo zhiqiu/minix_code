@@ -77,13 +77,13 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 	//sdr_out32(base0, REG_CODEC_DATA, val);
 	//sdr_out32(base0, REG_CODEC_CTRL, 0x0e);
 
-	snd_mychip_pokeBA0(dev, BA0_ACCAD , reg);
-	snd_mychip_pokeBA0(dev, BA0_ACCDA , val);
-	snd_mychip_pokeBA0(dev, BA0_ACCTL);
+	snd_mychip_pokeBA0(&dev, BA0_ACCAD , reg);
+	snd_mychip_pokeBA0(&dev, BA0_ACCDA , val);
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL);
 
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
 
 	for (i = 0; i < 50000; i++) {
@@ -96,7 +96,7 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 07h
 		 */
 		//if codec_done
-		if (!(snd_mychip_peekBA0(base0, BA0_ACCTL) & ACCTL_DCV)) {
+		if (!(snd_mychip_peekBA0(&base0, BA0_ACCTL) & ACCTL_DCV)) {
 			goto end;
 		}
 	}
@@ -120,15 +120,15 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  6. Read ACSTS = Status Register = 464h, check VSTS bit
 	 */
 
-	snd_mychip_peekBA0(dev, BA0_ACSDA);
+	snd_mychip_peekBA0(&dev, BA0_ACSDA);
 
-	tmp = snd_mychip_peekBA0(dev, BA0_ACCTL);
+	tmp = snd_mychip_peekBA0(&dev, BA0_ACCTL);
 	if ((tmp & ACCTL_VFRM) == 0) {
 		printf("mychip: ACCTL_VFRM not set 0x%x\n",tmp);
-		snd_mychip_pokeBA0(dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
+		snd_mychip_pokeBA0(&dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
 		msleep(50);
-		tmp = snd_mychip_pokeBA0(dev, BA0_ACCTL + offset);
-		snd_mychip_pokeBA0(dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
+		tmp = snd_mychip_pokeBA0(&dev, BA0_ACCTL + offset);
+		snd_mychip_pokeBA0(&dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
 
 	}
 
@@ -145,14 +145,14 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  set RSTN - ARST# inactive, AC97 codec not reset
 	 */
 
-	snd_mychip_pokeBA0(dev, BA0_ACCAD, reg);
-	snd_mychip_pokeBA0(dev, BA0_ACCDA, 0);
+	snd_mychip_pokeBA0(&dev, BA0_ACCAD, reg);
+	snd_mychip_pokeBA0(&dev, BA0_ACCDA, 0);
 
 
-	snd_mychip_pokeBA0(dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
 	/*
@@ -167,7 +167,7 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 		 *  Now, check to see if the read has completed.
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 17h
 		 */
-		if (!(snd_mychip_peekBA0(dev, BA0_ACCTL) & ACCTL_DCV))
+		if (!(snd_mychip_peekBA0(&dev, BA0_ACCTL) & ACCTL_DCV))
 			goto ok1;
 	}
 	printf("AC'97 read problem (ACCTL_DCV), reg = 0x%x\n", reg);
@@ -184,7 +184,7 @@ ok1:
 		 *  ACSTS = Status Register = 464h
 		 *  VSTS - Valid Status
 		 */
-		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_VSTS)
+		if (snd_mychip_peekBA0(&dev, BA0_ACSTS) & ACSTS_VSTS)
 			goto ok2;
 		udelay(10);
 	}
@@ -198,7 +198,7 @@ ok2:
 	 *  Read the data returned from the AC97 register.
 	 *  ACSDA = Status Data Register = 474h
 	 */
-	result = snd_mychip_peekBA0(dev, BA0_ACSDA + offset);
+	result = snd_mychip_peekBA0(&dev, BA0_ACSDA + offset);
 end:
 	return result;
 }
@@ -215,15 +215,15 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  out in a known state, and blast the master serial port control register
 	 *  to zero so that the serial ports also start out in a known state.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_CLKCR1, 0);
-	snd_mychip_pokeBA0(dev, BA0_SERMC1, 0);
+	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, 0);
+	snd_mychip_pokeBA0(&dev, BA0_SERMC1, 0);
 
 	/*
 	 *  If we are in AC97 mode, then we must set the part to a host controlled
 	 *  AC-link.  Otherwise, we won't be able to bring up the link.
 	 */        
 
-	snd_mychip_pokeBA0(dev, BA0_SERACC, SERACC_HSP | SERACC_CHIP_TYPE_1_03); /* 1.03 codec */
+	snd_mychip_pokeBA0(&dev, BA0_SERACC, SERACC_HSP | SERACC_CHIP_TYPE_1_03); /* 1.03 codec */
 
 
 	/*
@@ -232,17 +232,17 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  there might be logic external to the CS461x that uses the ARST# line
 	 *  for a reset.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, 0);
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, 0);
 
 	udelay(50);
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_RSTN);
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_RSTN);
 
 	/*
 	 *  The first thing we do here is to enable sync generation.  As soon
 	 *  as we start receiving bit clock, we'll start producing the SYNC
 	 *  signal.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_ESYN | ACCTL_RSTN);
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_ESYN | ACCTL_RSTN);
 
 	/*
 	 *  Now wait for a short while to allow the AC97 part to start
@@ -255,21 +255,21 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  Set the serial port timing configuration, so that
 	 *  the clock control circuit gets its clock from the correct place.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_SERMC1, SERMC1_PTC_AC97);
+	snd_mychip_pokeBA0(&dev, BA0_SERMC1, SERMC1_PTC_AC97);
 
 	/*
 	 *  Write the selected clock control setup to the hardware.  Do not turn on
 	 *  SWCE yet (if requested), so that the devices clocked by the output of
 	 *  PLL are not clocked until the PLL is stable.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_PLLCC, PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
-	snd_mychip_pokeBA0(dev, BA0_PLLM, 0x3a);
-	snd_mychip_pokeBA0(dev, BA0_CLKCR2, CLKCR2_PDIVS_8);
+	snd_mychip_pokeBA0(&dev, BA0_PLLCC, PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
+	snd_mychip_pokeBA0(&dev, BA0_PLLM, 0x3a);
+	snd_mychip_pokeBA0(&dev, BA0_CLKCR2, CLKCR2_PDIVS_8);
 
 	/*
 	 *  Power up the PLL.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_CLKCR1, CLKCR1_PLLP);
+	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, CLKCR1_PLLP);
 
 	/*
 	 *  Wait until the PLL has stabilized.
@@ -279,30 +279,30 @@ static int dev_init(DEV_STRUCT* dev) {
 	/*
 	 *  Turn on clocking of the core so that we can setup the serial ports.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_CLKCR1, CLKCR1_PLLP | CLKCR1_SWCE);
+	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, CLKCR1_PLLP | CLKCR1_SWCE);
 
 	/*
 	 * Enable FIFO  Host Bypass
 	 */
-	snd_mychip_pokeBA0(dev, BA0_SERBCF, SERBCF_HBP);
+	snd_mychip_pokeBA0(&dev, BA0_SERBCF, SERBCF_HBP);
 
 	/*
 	 *  Fill the serial port FIFOs with silence.
 	 */
-	//snd_mychip_clear_serial_FIFOs(dev);
+	//snd_mychip_clear_serial_FIFOs(&dev);
 
 	/*
 	 *  Set the serial port FIFO pointer to the first sample in the FIFO.
 	 */
-	/* snd_mychip_pokeBA0(dev, BA0_SERBSP, 0); */
+	/* snd_mychip_pokeBA0(&dev, BA0_SERBSP, 0); */
 
 	/*
 	 *  Write the serial port configuration to the part.  The master
 	 *  enable bit is not set until all other values have been written.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_SERC1, SERC1_SO1F_AC97 | SERC1_SO1EN);
-	snd_mychip_pokeBA0(dev, BA0_SERC2, SERC2_SI1F_AC97 | SERC1_SO1EN);
-	snd_mychip_pokeBA0(dev, BA0_SERMC1, SERMC1_PTC_AC97 | SERMC1_MSPE);
+	snd_mychip_pokeBA0(&dev, BA0_SERC1, SERC1_SO1F_AC97 | SERC1_SO1EN);
+	snd_mychip_pokeBA0(&dev, BA0_SERC2, SERC2_SI1F_AC97 | SERC1_SO1EN);
+	snd_mychip_pokeBA0(&dev, BA0_SERMC1, SERMC1_PTC_AC97 | SERMC1_MSPE);
 
 	mdelay(5);
 
@@ -316,7 +316,7 @@ static int dev_init(DEV_STRUCT* dev) {
 		 *  Read the AC97 status register to see if we've seen a CODEC READY
 		 *  signal from the AC97 codec.
 		 */
-		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_CRDY)
+		if (snd_mychip_peekBA0(&dev, BA0_ACSTS) & ACSTS_CRDY)
 			goto ok1;
 		msleep(10);
 	}
@@ -331,7 +331,7 @@ ok1:
 	 *  Assert the vaid frame signal so that we can start sending commands
 	 *  to the AC97 codec.
 	 */
-	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
+	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
 
 
 	/*
@@ -344,7 +344,7 @@ ok1:
 		 *  Read the input slot valid register and see if input slots 3 and
 		 *  4 are valid yet.
 		 */
-		if ((snd_mychip_peekBA0(dev, BA0_ACISV) & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
+		if ((snd_mychip_peekBA0(&dev, BA0_ACISV) & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
 			goto ok2;
 		msleep(10);
 	}
@@ -367,21 +367,21 @@ ok2:
 	 *  commense the transfer of digital audio data to the AC97 codec.
 	 */
 
-	snd_mychip_pokeBA0(dev, BA0_ACOSV, ACOSV_SLV3 | ACOSV_SLV4);
+	snd_mychip_pokeBA0(&dev, BA0_ACOSV, ACOSV_SLV3 | ACOSV_SLV4);
 
 
 	/*
 	 *  Power down the DAC and ADC.  We will power them up (if) when we need
 	 *  them.
 	 */
-	/* snd_mychip_pokeBA0(dev, BA0_AC97_POWERDOWN, 0x300); */
+	/* snd_mychip_pokeBA0(&dev, BA0_AC97_POWERDOWN, 0x300); */
 
 	/*
 	 *  Turn off the Processor by turning off the software clock enable flag in 
 	 *  the clock control register.
 	 */
-	/* tmp = snd_mychip_peekBA0(dev, BA0_CLKCR1) & ~CLKCR1_SWCE; */
-	/* snd_mychip_pokeBA0(dev, BA0_CLKCR1, tmp); */
+	/* tmp = snd_mychip_peekBA0(&dev, BA0_CLKCR1) & ~CLKCR1_SWCE; */
+	/* snd_mychip_pokeBA0(&dev, BA0_CLKCR1, tmp); */
 
 	return OK;
 }
@@ -411,7 +411,7 @@ int snd_mychip_download_image(DEV_STRUCT *dev)
 	unsigned long offset = 0;
 
 	for (idx = 0; idx < BA1_MEMORY_COUNT; idx++) {
-		if ((err = snd_mychip_download(dev,
+		if ((err = snd_mychip_download(&dev,
 						&BA1Struct.map[offset],
 						BA1Struct.memory[idx].offset,
 						BA1Struct.memory[idx].size)) < 0)
@@ -427,26 +427,26 @@ static void snd_mychip_reset(DEV_STRUCT *dev){
 	/*
 	 *  Write the reset bit of the SP control register.
 	 */
-	snd_mychip_pokeBA1(dev, BA1_SPCR, SPCR_RSTSP);
+	snd_mychip_pokeBA1(&dev, BA1_SPCR, SPCR_RSTSP);
 
 	/*
 	 *  Write the control register.
 	 */
-	snd_mychip_pokeBA1(dev, BA1_SPCR, SPCR_DRQEN);
+	snd_mychip_pokeBA1(&dev, BA1_SPCR, SPCR_DRQEN);
 
 	/*
 	 *  Clear the trap registers.
 	 */
 	for (idx = 0; idx < 8; idx++) {
-		snd_mychip_pokeBA1(dev, BA1_DREG, DREG_REGID_TRAP_SELECT + idx);
-		snd_mychip_pokeBA1(dev, BA1_TWPR, 0xFFFF);
+		snd_mychip_pokeBA1(&dev, BA1_DREG, DREG_REGID_TRAP_SELECT + idx);
+		snd_mychip_pokeBA1(&dev, BA1_TWPR, 0xFFFF);
 	}
-	snd_mychip_pokeBA1(dev, BA1_DREG, 0);
+	snd_mychip_pokeBA1(&dev, BA1_DREG, 0);
 
 	/*
 	 *  Set the frame timer to reflect the number of cycles per frame.
 	 */
-	snd_mychip_pokeBA1(dev, BA1_FRMT, 0xadf);
+	snd_mychip_pokeBA1(&dev, BA1_FRMT, 0xadf);
 }
 
 /* Configure hardware registers (### CONF_HARDWARE ###) */
@@ -512,9 +512,9 @@ static void dev_set_playback_sample_rate(DEV_STRUCT *dev, u16_t sample_rate) {
 	 *  Fill in the SampleRateConverter control block.
 	 */
 
-	snd_mychip_pokeBA1(dev, BA1_PSRC,
+	snd_mychip_pokeBA1(&dev, BA1_PSRC,
 			((correctionPerSec << 16) & 0xFFFF0000) | (correctionPerGOF & 0xFFFF));
-	snd_mychip_pokeBA1(dev, BA1_PPI, phiIncr);
+	snd_mychip_pokeBA1(&dev, BA1_PPI, phiIncr);
 
 
 	// u32_t i, data = 0, base0 = base[0];
@@ -594,12 +594,12 @@ static void dev_set_capture_sample_rate(DEV_STRUCT *dev, unsigned int rate)
 	/*
 	 *  Fill in the VariDecimate control block.
 	 */
-	snd_mychip_pokeBA1(dev, BA1_CSRC,
+	snd_mychip_pokeBA1(&dev, BA1_CSRC,
 			((correctionPerSec << 16) & 0xFFFF0000) | (correctionPerGOF & 0xFFFF));
-	snd_mychip_pokeBA1(dev, BA1_CCI, coeffIncr);
-	snd_mychip_pokeBA1(dev, BA1_CD,
+	snd_mychip_pokeBA1(&dev, BA1_CCI, coeffIncr);
+	snd_mychip_pokeBA1(&dev, BA1_CD,
 			(((BA1_VARIDEC_BUF_1 + (initialDelay << 2)) << 16) & 0xFFFF0000) | 0x80);
-	snd_mychip_pokeBA1(dev, BA1_CPI, phiIncr);
+	snd_mychip_pokeBA1(&dev, BA1_CPI, phiIncr);
 
 	/*
 	 *  Figure out the frame group length for the write back task.  Basically,
@@ -622,11 +622,11 @@ static void dev_set_capture_sample_rate(DEV_STRUCT *dev, unsigned int rate)
 	/*
 	 * Fill in the WriteBack control block.
 	 */
-	snd_mychip_pokeBA1(dev, BA1_CFG1, frameGroupLength);
-	snd_mychip_pokeBA1(dev, BA1_CFG2, (0x00800000 | frameGroupLength));
-	snd_mychip_pokeBA1(dev, BA1_CCST, 0x0000FFFF);
-	snd_mychip_pokeBA1(dev, BA1_CSPB, ((65536 * rate) / 24000));
-	snd_mychip_pokeBA1(dev, (BA1_CSPB + 4), 0x0000FFFF);
+	snd_mychip_pokeBA1(&dev, BA1_CFG1, frameGroupLength);
+	snd_mychip_pokeBA1(&dev, BA1_CFG2, (0x00800000 | frameGroupLength));
+	snd_mychip_pokeBA1(&dev, BA1_CCST, 0x0000FFFF);
+	snd_mychip_pokeBA1(&dev, BA1_CSPB, ((65536 * rate) / 24000));
+	snd_mychip_pokeBA1(&dev, (BA1_CSPB + 4), 0x0000FFFF);
 }
 /* Set DAC and ADC format (### SET_FORMAT ###)*/
 static void dev_set_format(u32_t *base, u32_t bits, u32_t sign,
@@ -729,15 +729,15 @@ static void dev_pause_dma(u32_t *base, int sub_dev) {
 	u32_t base0 = base[0];
 	u32_t tmp;
 	if (sub_dev == DAC) {
-		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
+		tmp = snd_mychip_peekBA1(&dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
-		snd_mychip_pokeBA1(dev, BA1_PCTL, tmp);
+		snd_mychip_pokeBA1(&dev, BA1_PCTL, tmp);
 
 	}
 	if (sub_dev == ADC) {
-		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
+		tmp = snd_mychip_peekBA1(&dev, BA1_CCTL);
 		tmp &= 0xffff0000;
-		snd_mychip_pokeBA1(dev, BA1_CCTL, tmp);
+		snd_mychip_pokeBA1(&dev, BA1_CCTL, tmp);
 	}
 }
 
@@ -747,14 +747,14 @@ static void dev_resume_dma(u32_t *base, int sub_dev) {
 	u32_t tmp;
 
 	if (sub_dev == DAC) {
-		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
+		tmp = snd_mychip_peekBA1(&dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
-		snd_mychip_pokeBA1(dev, BA1_PCTL, chip->play_ctl | tmp);
+		snd_mychip_pokeBA1(&dev, BA1_PCTL, chip->play_ctl | tmp);
 	}
 	if (sub_dev == ADC) {
-		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
+		tmp = snd_mychip_peekBA1(&dev, BA1_CCTL);
 		tmp &= 0xffff0000;
-		snd_mychip_pokeBA1(dev, BA1_CCTL, chip->capt_ctl | tmp);
+		snd_mychip_pokeBA1(&dev, BA1_CCTL, chip->capt_ctl | tmp);
 
 	}
 }
@@ -763,10 +763,10 @@ static void dev_resume_dma(u32_t *base, int sub_dev) {
  * -- Return interrupt status */
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
 	u32_t status, base0 = base[0];
-	status = snd_mychip_peekBA0(dev, BA0_HISR);
+	status = snd_mychip_peekBA0(&dev, BA0_HISR);
 	//sdr_in32(base0, REG_DAC_HDSR);
 	//sdr_in32(base0, REG_ADC_HDSR);
-	snd_mychip_pokeBA0(dev, BA0_HICR, HICR_CHGM | HICR_IEV);
+	snd_mychip_pokeBA0(&dev, BA0_HICR, HICR_CHGM | HICR_IEV);
 	return status;
 }
 
@@ -775,26 +775,26 @@ static void dev_intr_enable(DEV_STRUCT *dev, int flag) {
 	u32_t data, base0 = base[0], tmp;
 	if (flag == INTR_ENABLE) {
 		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
-		tmp = snd_mychip_peekBA0(dev, BA1_PFIE);
+		tmp = snd_mychip_peekBA0(&dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
-		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);	/* playback interrupt enable */
+		snd_mychip_pokeBA1(&dev, BA1_PFIE, tmp);	/* playback interrupt enable */
 
-		tmp = snd_mychip_peekBA1(dev, BA1_CIE);
+		tmp = snd_mychip_peekBA1(&dev, BA1_CIE);
 		tmp &= ~0x0000003f;
 		tmp |=  0x00000001;
-		snd_mychip_pokeBA1(dev, BA1_CIE, tmp);	/* capture interrupt enable */
+		snd_mychip_pokeBA1(&dev, BA1_CIE, tmp);	/* capture interrupt enable */
 	}
 	else if (flag == INTR_DISABLE) {
 		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
-		tmp = snd_mychip_peekBA1(dev, BA1_PFIE);
+		tmp = snd_mychip_peekBA1(&dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
 		tmp |=  0x00000010;
-		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);     /* playback interrupt disable */
+		snd_mychip_pokeBA1(&dev, BA1_PFIE, tmp);     /* playback interrupt disable */
 
-		tmp = snd_mychip_peekBA1(dev, BA1_CIE);
+		tmp = snd_mychip_peekBA1(&dev, BA1_CIE);
 		tmp &= ~0x0000003f;
 		tmp |=  0x00000011;
-		snd_mychip_pokeBA1(dev, BA1_CIE, tmp); /* capture interrupt disable */
+		snd_mychip_pokeBA1(&dev, BA1_CIE, tmp); /* capture interrupt disable */
 	}
 }
 
@@ -811,20 +811,20 @@ static int dev_probe(void) {
 	   (just make sure to get the bugs out first)*/
 	pci_init();
 	device = pci_first_dev(&devind, &vid, &did);
-	while (device > 0) {
+	while (&device > 0) {
 		if (vid == VENDOR_ID && did == DEVICE_ID)
 			break;
 		device = pci_next_dev(&devind, &vid, &did);
 	}
 	if (vid != VENDOR_ID || did != DEVICE_ID)
 		return EIO;
-	pci_reserve(devind);
+	pci_reserve(&devind);
 
 	for (i = 0; i < 6; i++)
 		dev.base[i] = 0;
 #ifdef DMA_BASE_IOMAP
 	for (i = 0; i < 6; i++) {
-		if (pci_get_bar(devind, PCI_BAR + i * 4, &base, &size, &ioflag)) {
+		if (pci_get_bar(&devind, PCI_BAR + i * 4, &base, &size, &ioflag)) {
 			/* printf("SDR: Fail to get PCI BAR %d\n", i); */
 			continue;
 		}
@@ -845,7 +845,7 @@ static int dev_probe(void) {
 		/* get base address of our device, ignore least signif. bit 
 	   this last bit thing could be device dependent, i don't know ??? */
 	for (i = 0; i < 6; i++){
-		dev.base[i] = base = pci_attr_r32(devind, PCI_BAR + i * 4) & 0xffffffe0;
+		dev.base[i] = base = pci_attr_r32(&devind, PCI_BAR + i * 4) & 0xffffffe0;
 		if ((reg = vm_map_phys(SELF, (void *)base, size)) == MAP_FAILED) {
 			printf("SDR: Fail to map hardware registers from PCI\n");
 			return -EIO;
@@ -855,13 +855,13 @@ static int dev_probe(void) {
 	FUNC_LOG();
 #endif
 	dev.name = pci_dev_name(vid, did);
-	dev.irq = pci_attr_r8(devind, PCI_ILR);
-	dev.revision = pci_attr_r8(devind, PCI_REV);
+	dev.irq = pci_attr_r8(&devind, PCI_ILR);
+	dev.revision = pci_attr_r8(&devind, PCI_REV);
 	dev.did = did;
 	dev.vid = vid;
 	dev.devind = devind;
-	//temp = pci_attr_r16(devind, PCI_CR);
-	//pci_attr_w16(devind, PCI_CR, temp | 0x105);
+	//temp = pci_attr_r16(&devind, PCI_CR);
+	//pci_attr_w16(&devind, PCI_CR, temp | 0x105);
 
 #ifdef MY_DEBUG
 	printf("SDR: Hardware name is %s\n", dev.name);
@@ -928,7 +928,7 @@ static int free_buf(u32_t *val, int *len, int num) {
 static int get_samples_in_buf(u32_t *result, int *len, int chan) {
 	u32_t res;
 	/* READ_DMA_CURRENT_ADDR */
-	res = dev_read_dma_current(dev.base, chan);
+	res = dev_read_dma_current(&dev.base, chan);
 	*result = (u32_t)(sub_dev[chan].BufLength * 8192) + res;
 	return OK;
 }
@@ -938,7 +938,7 @@ int drv_init(void) {
 	drv.DriverName = DRIVER_NAME;
 	drv.NrOfSubDevices = 3;
 	drv.NrOfSpecialFiles = 3;
-	//snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, snd_dma_pci_data(dev->pci), 64*1024, 256*1024);
+	//snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV, snd_dma_pci_data(&dev->pci), 64*1024, 256*1024);
 	sub_dev[DAC].readable = 0;
 	sub_dev[DAC].writable = 1;
 	sub_dev[DAC].DmaSize = 64 * 1024;
@@ -1014,7 +1014,7 @@ int drv_init_hw(void) {
 	int i;
 
 	/* Match the device */
-	if (dev_probe()) {
+	if (&dev_probe()) {
 		printf("SDR: No sound card found\n");
 		return EIO;
 	}
@@ -1022,21 +1022,21 @@ int drv_init_hw(void) {
 	dev_set_region();
 
 	/* init the device */
-	if (dev_init(&dev)!=OK) {
+	if (&dev_init(&dev)!=OK) {
 		printf("SDR: Fail to init the device\n");
 		return EIO;
 	}
 
 	/* Configure the hardware */
-	// dev_configure(dev.base);
+	// dev_configure(&dev.base);
 
 	/* Initialize the mixer */
 	/* ### INIT_MIXER ### */
 
-	dev_init_mixer(dev.base);
+	dev_init_mixer(&dev.base);
 
 	/* Set default mixer volume */
-	dev_set_default_volume(dev.base);
+	dev_set_default_volume(&dev.base);
 
 	/* Initialize subdevice data */
 	for (i = 0; i < drv.NrOfSubDevices; i++) {
@@ -1079,8 +1079,8 @@ int drv_start(int sub_dev, int DmaMode) {
 	FUNC_LOG();
 	/* Set DAC and ADC sample rate */
 	/* ### SET_SAMPLE_RATE ### */
-	dev_set_playback_sample_rate(dev.base, aud_conf[sub_dev].sample_rate);
-	dev_set_capture_sample_rate(dev.base, aud_conf[sub_dev].sample_rate);
+	dev_set_playback_sample_rate(&dev.base, aud_conf[sub_dev].sample_rate);
+	dev_set_capture_sample_rate(&dev.base, aud_conf[sub_dev].sample_rate);
 
 	sample_count = aud_conf[sub_dev].fragment_size;
 #ifdef DMA_LENGTH_BY_FRAME
@@ -1088,7 +1088,7 @@ int drv_start(int sub_dev, int DmaMode) {
 #endif
 	/* Set DAC and ADC format */
 	/* ### SET_FORMAT ### */
-	dev_set_format(dev.base, aud_conf[sub_dev].nr_of_bits,
+	dev_set_format(&dev.base, aud_conf[sub_dev].nr_of_bits,
 			aud_conf[sub_dev].sign, aud_conf[sub_dev].stereo, sample_count);
 
 	drv_reenable_int(sub_dev);
@@ -1109,10 +1109,10 @@ int drv_stop(int sub_dev) {
 	u32_t data;
 
 	/* INTR_ENABLE_DISABLE */
-	dev_intr_enable(dev, INTR_DISABLE);
+	dev_intr_enable(&dev, INTR_DISABLE);
 
 	/* ### STOP_CHANNEL ### */
-	//dev_stop_channel(dev.base, sub_dev);
+	//dev_stop_channel(&dev.base, sub_dev);
 
 	aud_conf[sub_dev].busy = 0;
 	return OK;
@@ -1164,11 +1164,11 @@ int drv_io_ctl(unsigned long request, void *val, int *len, int sub_dev) {
 			break;
 		case MIXIOGETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(dev.base, val, GET_VOL);
+			status = get_set_volume(&dev.base, val, GET_VOL);
 			break;
 		case MIXIOSETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(dev.base, val, SET_VOL);
+			status = get_set_volume(&dev.base, val, SET_VOL);
 			break;
 		default:
 			status = EINVAL;
@@ -1195,7 +1195,7 @@ int drv_set_dma(u32_t dma, u32_t length, int chan) {
 	length = length / (aud_conf[chan].nr_of_bits * (aud_conf[chan].stereo + 1) / 8);
 #endif
 	/* ### SET_DMA ### */
-	dev_set_dma(dev.base, dma, length, chan);
+	dev_set_dma(&dev.base, dma, length, chan);
 	return OK;
 }
 
@@ -1203,7 +1203,7 @@ int drv_set_dma(u32_t dma, u32_t length, int chan) {
 int drv_int_sum(void) {
 	u32_t status;
 	/* ### READ_CLEAR_INTR_STS ### */
-	status = dev_read_clear_intr_status(dev);
+	status = dev_read_clear_intr_status(&dev);
 	dev.intr_status = status;
 #ifdef MY_DEBUG
 	printf("SDR: Interrupt status is 0x%08x\n", status);
@@ -1231,7 +1231,7 @@ int drv_int(int sub_dev) {
 /* ======= [Audio interface] Pause DMA ======= */
 int drv_pause(int sub_dev) {
 	/* ### PAUSE_DMA ### */
-	dev_pause_dma(dev.base, sub_dev);
+	dev_pause_dma(&dev.base, sub_dev);
 	return OK;
 }
 
@@ -1239,6 +1239,6 @@ int drv_pause(int sub_dev) {
 int drv_resume(int sub_dev) {
 	/* ### RESUME_DMA ### */
 	
-	dev_resume_dma(dev.base, sub_dev);
+	dev_resume_dma(&dev.base, sub_dev);
 	return OK;
 }
