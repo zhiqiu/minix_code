@@ -5,7 +5,7 @@
 
 #define CS4624_DEBUG
 #ifdef CS4624_DEBUG
-#define FUNC_LOG()  printf(KERN_EMERG "FUNC_LOG: [%d][%s()]\n", __LINE__, __FUNCTION__)
+#define FUNC_LOG()  printf("FUNC_LOG: [%d][%s()]\n", __LINE__, __FUNCTION__)
 #endif
 // type declared in libaudio
 /* global value */
@@ -348,7 +348,7 @@ ok1:
 		 */
 		if ((snd_mychip_peekBA0(dev, BA0_ACISV) & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
 			goto ok2;
-		msleep(10);
+		micro_delay(10);
 	}
 
 	/* This may happen on a cold boot with a Terratec SiXPack 5.1.
@@ -750,12 +750,12 @@ static void dev_resume_dma(DEV_STRUCT *dev, int sub_dev) {
 	if (sub_dev == DAC) {
 		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
-		snd_mychip_pokeBA1(dev, BA1_PCTL, chip->play_ctl | tmp);
+		snd_mychip_pokeBA1(dev, BA1_PCTL, dev->play_ctl | tmp);
 	}
 	if (sub_dev == ADC) {
 		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
 		tmp &= 0xffff0000;
-		snd_mychip_pokeBA1(dev, BA1_CCTL, chip->capt_ctl | tmp);
+		snd_mychip_pokeBA1(dev, BA1_CCTL, dev->capt_ctl | tmp);
 
 	}
 }
@@ -763,7 +763,6 @@ static void dev_resume_dma(DEV_STRUCT *dev, int sub_dev) {
 /* Read and clear interrupt stats (### READ_CLEAR_INTR_STS ###)
  * -- Return interrupt status */
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
-	u32_t status, base0 = base[0];
 	status = snd_mychip_peekBA0(dev, BA0_HISR);
 	//sdr_in32(base0, REG_DAC_HDSR);
 	//sdr_in32(base0, REG_ADC_HDSR);
@@ -773,9 +772,9 @@ static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
 
 /* Enable or disable interrupt (### INTR_ENABLE_DISABLE ###) */
 static void dev_intr_enable(DEV_STRUCT *dev, int flag) {
-	u32_t data, base0 = base[0], tmp;
+	u32_t data, tmp;
 	if (flag == INTR_ENABLE) {
-		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
+		snd_mychip_pokeBA0(dev, BA0_HICR, HICR_IEV | HICR_CHGM);
 		tmp = snd_mychip_peekBA0(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
 		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);	/* playback interrupt enable */
@@ -786,7 +785,7 @@ static void dev_intr_enable(DEV_STRUCT *dev, int flag) {
 		snd_mychip_pokeBA1(dev, BA1_CIE, tmp);	/* capture interrupt enable */
 	}
 	else if (flag == INTR_DISABLE) {
-		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
+		snd_mychip_pokeBA0(dev, BA0_HICR, HICR_IEV | HICR_CHGM);
 		tmp = snd_mychip_peekBA1(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
 		tmp |=  0x00000010;
@@ -811,11 +810,11 @@ static int dev_probe(void) {
 	   This code is quite device independent and you can copy it. 
 	   (just make sure to get the bugs out first)*/
 	pci_init();
-	device = pci_first_dev(devind, &vid, &did);
-	while (&device > 0) {
+	device = pci_first_dev(&devind, &vid, &did);
+	while (device > 0) {
 		if (vid == VENDOR_ID && did == DEVICE_ID)
 			break;
-		device = pci_next_dev(devind, &vid, &did);
+		device = pci_next_dev(&devind, &vid, &did);
 	}
 	if (vid != VENDOR_ID || did != DEVICE_ID)
 		return EIO;
