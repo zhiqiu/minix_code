@@ -79,7 +79,7 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 
 	snd_mychip_pokeBA0(&dev, BA0_ACCAD , reg);
 	snd_mychip_pokeBA0(&dev, BA0_ACCDA , val);
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL);
+	snd_mychip_peekBA0(&dev, BA0_ACCTL);
 
 	snd_mychip_pokeBA0(&dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
@@ -96,7 +96,7 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 07h
 		 */
 		//if codec_done
-		if (!(snd_mychip_peekBA0(&base0, BA0_ACCTL) & ACCTL_DCV)) {
+		if (!(snd_mychip_peekBA0(&dev, BA0_ACCTL) & ACCTL_DCV)) {
 			goto end;
 		}
 	}
@@ -110,7 +110,7 @@ end:
 /* Read the data from mixer register (### READ_MIXER_REG ###) */
 // snd_mychip_codec_read
 u32_t dev_mixer_read(u32_t *base, u32_t reg) {
-	u32_t i, data, base0 = base[0], tmp, result;
+	u32_t i, data, base0 = base[0], tmp, result, count;
 	/*
 	 *  1. Write ACCAD = Command Address Register = 46Ch for AC97 register address
 	 *  2. Write ACCDA = Command Data Register = 470h    for data to write to AC97 
@@ -126,7 +126,7 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	if ((tmp & ACCTL_VFRM) == 0) {
 		printf("mychip: ACCTL_VFRM not set 0x%x\n",tmp);
 		snd_mychip_pokeBA0(&dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
-		msleep(50);
+		micro_delay(50);
 		tmp = snd_mychip_pokeBA0(&dev, BA0_ACCTL + offset);
 		snd_mychip_pokeBA0(&dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
 
@@ -162,7 +162,7 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 		/*
 		 *  First, we want to wait for a short time.
 		 */
-		udelay(10);
+		micro_delay(10);
 		/*
 		 *  Now, check to see if the read has completed.
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 17h
@@ -186,7 +186,7 @@ ok1:
 		 */
 		if (snd_mychip_peekBA0(&dev, BA0_ACSTS) & ACSTS_VSTS)
 			goto ok2;
-		udelay(10);
+		micro_delay(10);
 	}
 
 	printf("AC'97 read problem (ACSTS_VSTS), reg = 0x%x\n", reg);
