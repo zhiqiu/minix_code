@@ -1088,7 +1088,7 @@ int drv_start(int sub_dev, int DmaMode) {
 #endif
 	/* Set DAC and ADC format */
 	/* ### SET_FORMAT ### */
-	dev_set_format(&dev.base, aud_conf[sub_dev].nr_of_bits,
+	dev_set_format(dev.base, aud_conf[sub_dev].nr_of_bits,
 			aud_conf[sub_dev].sign, aud_conf[sub_dev].stereo, sample_count);
 
 	drv_reenable_int(sub_dev);
@@ -1164,11 +1164,11 @@ int drv_io_ctl(unsigned long request, void *val, int *len, int sub_dev) {
 			break;
 		case MIXIOGETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(&dev.base, val, GET_VOL);
+			status = get_set_volume(dev.base, val, GET_VOL);
 			break;
 		case MIXIOSETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(&dev.base, val, SET_VOL);
+			status = get_set_volume(dev.base, val, SET_VOL);
 			break;
 		default:
 			status = EINVAL;
@@ -1195,7 +1195,7 @@ int drv_set_dma(u32_t dma, u32_t length, int chan) {
 	length = length / (aud_conf[chan].nr_of_bits * (aud_conf[chan].stereo + 1) / 8);
 #endif
 	/* ### SET_DMA ### */
-	dev_set_dma(&dev.base, dma, length, chan);
+	dev_set_dma(dev.base, dma, length, chan);
 	return OK;
 }
 
@@ -1231,7 +1231,7 @@ int drv_int(int sub_dev) {
 /* ======= [Audio interface] Pause DMA ======= */
 int drv_pause(int sub_dev) {
 	/* ### PAUSE_DMA ### */
-	dev_pause_dma(&dev.base, sub_dev);
+	dev_pause_dma(&dev, sub_dev);
 	return OK;
 }
 
@@ -1239,6 +1239,6 @@ int drv_pause(int sub_dev) {
 int drv_resume(int sub_dev) {
 	/* ### RESUME_DMA ### */
 	
-	dev_resume_dma(&dev.base, sub_dev);
+	dev_resume_dma(&dev, sub_dev);
 	return OK;
 }
