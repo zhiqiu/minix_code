@@ -1036,7 +1036,7 @@ int drv_init_hw(void) {
 	dev_init_mixer(&dev);
 
 	/* Set default mixer volume */
-	dev_set_default_volume(dev.base);
+	dev_set_default_volume(&dev);
 
 	/* Initialize subdevice data */
 	for (i = 0; i < drv.NrOfSubDevices; i++) {
@@ -1164,11 +1164,11 @@ int drv_io_ctl(unsigned long request, void *val, int *len, int sub_dev) {
 			break;
 		case MIXIOGETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(dev.base, val, GET_VOL);
+			status = get_set_volume(&dev, val, GET_VOL);
 			break;
 		case MIXIOSETVOLUME:
 			/* ### GET_SET_VOLUME ### */
-			status = get_set_volume(dev.base, val, SET_VOL);
+			status = get_set_volume(&dev, val, SET_VOL);
 			break;
 		default:
 			status = EINVAL;
