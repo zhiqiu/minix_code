@@ -1,5 +1,5 @@
-#ifndef _CS4624_H
-#define _CS4624_H
+#ifndef _CS4624_H_
+#define _CS4624_H_
 /* ======= General Parameter ======= */
 /* Global configure */
 #define DMA_LENGTH_BY_FRAME
