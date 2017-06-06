@@ -1014,7 +1014,7 @@ int drv_init_hw(void) {
 	int i;
 
 	/* Match the device */
-	if (&dev_probe()) {
+	if (dev_probe()) {
 		printf("SDR: No sound card found\n");
 		return EIO;
 	}
@@ -1022,7 +1022,7 @@ int drv_init_hw(void) {
 	dev_set_region();
 
 	/* init the device */
-	if (&dev_init(&dev)!=OK) {
+	if (dev_init(&dev)!=OK) {
 		printf("SDR: Fail to init the device\n");
 		return EIO;
 	}
@@ -1033,10 +1033,10 @@ int drv_init_hw(void) {
 	/* Initialize the mixer */
 	/* ### INIT_MIXER ### */
 
-	dev_init_mixer(&dev.base);
+	dev_init_mixer(&dev);
 
 	/* Set default mixer volume */
-	dev_set_default_volume(&dev.base);
+	dev_set_default_volume(dev.base);
 
 	/* Initialize subdevice data */
 	for (i = 0; i < drv.NrOfSubDevices; i++) {
@@ -1056,7 +1056,7 @@ int drv_init_hw(void) {
 /* ======= [Audio interface] Driver reset =======*/
 int drv_reset(void) {
 	/* ### RESET_HARDWARE_CAN_FAIL ### */
-	return dev_init(&dev );
+	return dev_init(&dev);
 }
 
 /* ======= [Audio interface] Driver start ======= */
@@ -1073,14 +1073,14 @@ int drv_start(int sub_dev, int DmaMode) {
 	 */
 	/* old image */
 	if (snd_mychip_download_image(&dev) < 0) {
-		snd_printk(KERN_ERR "image download error\n");
+		printf("image download error\n");
 		return -EIO;
 	}
 	FUNC_LOG();
 	/* Set DAC and ADC sample rate */
 	/* ### SET_SAMPLE_RATE ### */
-	dev_set_playback_sample_rate(&dev.base, aud_conf[sub_dev].sample_rate);
-	dev_set_capture_sample_rate(&dev.base, aud_conf[sub_dev].sample_rate);
+	dev_set_playback_sample_rate(&dev, aud_conf[sub_dev].sample_rate);
+	dev_set_capture_sample_rate(&dev, aud_conf[sub_dev].sample_rate);
 
 	sample_count = aud_conf[sub_dev].fragment_size;
 #ifdef DMA_LENGTH_BY_FRAME
