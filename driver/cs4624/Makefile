@@ -1,6 +1,6 @@
 # Makefile for the CS4281 driver
-PROG=	cs4281
-SRCS=	cs4281.c mixer.c
+PROG=	cs4624
+SRCS=	cs4624.c mixer.c
 
 FILES=${PROG}.conf
 FILESNAME=${PROG}
