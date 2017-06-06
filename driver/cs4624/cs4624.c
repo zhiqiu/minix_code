@@ -647,6 +647,7 @@ static void dev_set_format(u32_t *base, u32_t bits, u32_t sign,
 }
 
 /* Start the channel (### START_CHANNEL ###) */
+// in snd_cs4281_capture_prepare/snd_cs4281_playback_prepare
 static void dev_start_channel(u32_t *base, int sub_dev) {
 	u32_t temp, base0 = base[0];
 
@@ -674,6 +675,9 @@ static void dev_start_channel(u32_t *base, int sub_dev) {
 		sdr_out32(base0, REG_ADC_FCR, fcr_data);
 		sdr_out32(base0, REG_ADC_DCR, dcr_data);
 	}
+
+
+
 
 }
 
@@ -723,34 +727,35 @@ static u32_t dev_read_dma_current(u32_t *base, int sub_dev) {
 /* Pause the DMA (### PAUSE_DMA ###) */
 static void dev_pause_dma(u32_t *base, int sub_dev) {
 	u32_t base0 = base[0];
-	dcr_data |= CMD_DCR_MASK;
-	fcr_data |= CMD_FCR_FEN;
+	u32_t tmp;
 	if (sub_dev == DAC) {
-		sdr_out32(base0, REG_DAC_DMR, dmr_data);
-		sdr_out32(base0, REG_DAC_FCR, fcr_data);
-		sdr_out32(base0, REG_DAC_DCR, dcr_data);
+		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
+		tmp &= 0x0000ffff;
+		snd_mychip_pokeBA1(dev, BA1_PCTL, tmp);
+
 	}
 	if (sub_dev == ADC) {
-		sdr_out32(base0, REG_ADC_DMR, dmr_data);
-		sdr_out32(base0, REG_ADC_FCR, fcr_data);
-		sdr_out32(base0, REG_ADC_DCR, dcr_data);
+		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
+		tmp &= 0xffff0000;
+		snd_mychip_pokeBA1(dev, BA1_CCTL, tmp);
 	}
 }
 
 /* Resume the DMA (### RESUME_DMA ###) */
 static void dev_resume_dma(u32_t *base, int sub_dev) {
 	u32_t base0 = base[0];
-	dcr_data &= ~CMD_DCR_MASK;
-	fcr_data &= ~CMD_FCR_FEN;
+	u32_t tmp;
+
 	if (sub_dev == DAC) {
-		sdr_out32(base0, REG_DAC_DMR, dmr_data);
-		sdr_out32(base0, REG_DAC_FCR, fcr_data);
-		sdr_out32(base0, REG_DAC_DCR, dcr_data);
+		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
+		tmp &= 0x0000ffff;
+		snd_mychip_pokeBA1(dev, BA1_PCTL, chip->play_ctl | tmp);
 	}
 	if (sub_dev == ADC) {
-		sdr_out32(base0, REG_ADC_DMR, dmr_data);
-		sdr_out32(base0, REG_ADC_FCR, fcr_data);
-		sdr_out32(base0, REG_ADC_DCR, dcr_data);
+		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
+		tmp &= 0xffff0000;
+		snd_mychip_pokeBA1(dev, BA1_CCTL, chip->capt_ctl | tmp);
+
 	}
 }
 
@@ -758,10 +763,10 @@ static void dev_resume_dma(u32_t *base, int sub_dev) {
  * -- Return interrupt status */
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
 	u32_t status, base0 = base[0];
-	status = sdr_in32(dev, BA0_HISR);
+	status = snd_mychip_peekBA0(dev, BA0_HISR);
 	//sdr_in32(base0, REG_DAC_HDSR);
 	//sdr_in32(base0, REG_ADC_HDSR);
-	sdr_out32(base0, BA0_HICR, HICR_CHGM | HICR_IEV);
+	snd_mychip_pokeBA0(dev, BA0_HICR, HICR_CHGM | HICR_IEV);
 	return status;
 }
 
@@ -769,20 +774,18 @@ static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
 static void dev_intr_enable(DEV_STRUCT *dev, int flag) {
 	u32_t data, base0 = base[0], tmp;
 	if (flag == INTR_ENABLE) {
-		tmp = snd_cs46xx_peek(dev, BA1_PFIE);
+		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
+		tmp = snd_mychip_peekBA0(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
-		snd_cs46xx_poke(dev, BA1_PFIE, tmp);	/* playback interrupt enable */
+		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);	/* playback interrupt enable */
 
-		tmp = snd_cs46xx_peek(dev, BA1_CIE);
+		tmp = snd_mychip_peekBA1(dev, BA1_CIE);
 		tmp &= ~0x0000003f;
 		tmp |=  0x00000001;
-		snd_cs46xx_poke(dev, BA1_CIE, tmp);	/* capture interrupt enable */
-
-		//sdr_out32(base0, REG_INTR_CTRL, CMD_INTR_ENABLE);
-		//sdr_out32(base0, REG_INTR_MASK, ~(CMD_INTR_DMA | CMD_INTR_DMA0 |
-		//								CMD_INTR_DMA1));
+		snd_mychip_pokeBA1(dev, BA1_CIE, tmp);	/* capture interrupt enable */
 	}
 	else if (flag == INTR_DISABLE) {
+		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
 		tmp = snd_mychip_peekBA1(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
 		tmp |=  0x00000010;
@@ -1092,7 +1095,9 @@ int drv_start(int sub_dev, int DmaMode) {
 
 	/* Start the channel */
 	/* ### START_CHANNEL ### */
-	dev_start_channel(&dev, sub_dev);
+
+	//dev_start_channel(&dev, sub_dev);
+
 	aud_conf[sub_dev].busy = 1;
 
 	return OK;
@@ -1107,7 +1112,7 @@ int drv_stop(int sub_dev) {
 	dev_intr_enable(dev, INTR_DISABLE);
 
 	/* ### STOP_CHANNEL ### */
-	dev_stop_channel(dev.base, sub_dev);
+	//dev_stop_channel(dev.base, sub_dev);
 
 	aud_conf[sub_dev].busy = 0;
 	return OK;
@@ -1198,12 +1203,13 @@ int drv_set_dma(u32_t dma, u32_t length, int chan) {
 int drv_int_sum(void) {
 	u32_t status;
 	/* ### READ_CLEAR_INTR_STS ### */
-	status = dev_read_clear_intr_status(dev.base);
+	status = dev_read_clear_intr_status(dev);
 	dev.intr_status = status;
 #ifdef MY_DEBUG
 	printf("SDR: Interrupt status is 0x%08x\n", status);
 #endif
-	return (status & (INTR_STS_DAC | INTR_STS_ADC));
+	//return (status & (INTR_STS_DAC | INTR_STS_ADC));
+	return (status & (HISR_VC0 | HISR_VC1));
 }
 
 /* ======= [Audio interface] Handle interrupt status ======= */
@@ -1212,10 +1218,10 @@ int drv_int(int sub_dev) {
 
 	/* ### CHECK_INTR_DAC ### */
 	if (sub_dev == DAC)
-		mask = INTR_STS_DAC;
+		mask = HISR_VC0;
 	/* ### CHECK_INTR_ADC ### */
 	else if (sub_dev == ADC)
-		mask = INTR_STS_ADC;
+		mask = HISR_VC1;
 	else
 		return 0;
 

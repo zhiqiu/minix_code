@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 #include <minix/syslib.h>
-#include "cs4281.h"
+#include "cs4624.h"
 
 /* I/O function */
 static u8_t my_inb(u32_t port) {
