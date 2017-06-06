@@ -928,7 +928,7 @@ static int free_buf(u32_t *val, int *len, int num) {
 static int get_samples_in_buf(u32_t *result, int *len, int chan) {
 	u32_t res;
 	/* READ_DMA_CURRENT_ADDR */
-	res = dev_read_dma_current(&dev.base, chan);
+	res = dev_read_dma_current(dev.base, chan);
 	*result = (u32_t)(sub_dev[chan].BufLength * 8192) + res;
 	return OK;
 }
@@ -976,7 +976,7 @@ int drv_init(void) {
 }
 
 void dev_set_region(void){
-	snd_mychip_region region;
+	struct snd_mychip_region* region;
 
 	region = &dev.ba0_region.name.ba0;
 	strcpy(region->name, "MYCHIP_BA0");
