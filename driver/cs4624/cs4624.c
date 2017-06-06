@@ -234,7 +234,7 @@ static int dev_init(DEV_STRUCT* dev) {
 	 */
 	snd_mychip_pokeBA0(dev, BA0_ACCTL, 0);
 
-	udelay(50);
+	micro_delay(50);
 	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_RSTN);
 
 	/*
@@ -249,7 +249,7 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  generating bit clock (so we don't try to start the PLL without an
 	 *  input clock).
 	 */
-	mdelay(10);
+	micro_delay(10);
 
 	/*
 	 *  Set the serial port timing configuration, so that
@@ -274,7 +274,7 @@ static int dev_init(DEV_STRUCT* dev) {
 	/*
 	 *  Wait until the PLL has stabilized.
 	 */
-	msleep(100);
+	micro_delay(100);
 
 	/*
 	 *  Turn on clocking of the core so that we can setup the serial ports.
@@ -304,7 +304,7 @@ static int dev_init(DEV_STRUCT* dev) {
 	snd_mychip_pokeBA0(dev, BA0_SERC2, SERC2_SI1F_AC97 | SERC1_SO1EN);
 	snd_mychip_pokeBA0(dev, BA0_SERMC1, SERMC1_PTC_AC97 | SERMC1_MSPE);
 
-	mdelay(5);
+	micro_delay(5);
 
 
 	/*
@@ -391,11 +391,11 @@ int snd_mychip_download(DEV_STRUCT *dev,
 		unsigned long offset,
 		unsigned long len)
 {
-	void *dst;
+	u32_t dst;
 	unsigned int bank = offset >> 16;
 	offset = offset & 0xffff;
 
-	dst = dev->ba1_region.idx[bank].remap_addr;
+	dst = dev->ba1_region.idx[bank].remap_addr + offset;
 	len /= sizeof(u32_t);
 
 	/* writel already converts 32-bit value to right endianess */
@@ -428,26 +428,26 @@ static void snd_mychip_reset(DEV_STRUCT *dev){
 	/*
 	 *  Write the reset bit of the SP control register.
 	 */
-	snd_mychip_pokeBA1(&dev, BA1_SPCR, SPCR_RSTSP);
+	snd_mychip_pokeBA1(dev, BA1_SPCR, SPCR_RSTSP);
 
 	/*
 	 *  Write the control register.
 	 */
-	snd_mychip_pokeBA1(&dev, BA1_SPCR, SPCR_DRQEN);
+	snd_mychip_pokeBA1(dev, BA1_SPCR, SPCR_DRQEN);
 
 	/*
 	 *  Clear the trap registers.
 	 */
 	for (idx = 0; idx < 8; idx++) {
-		snd_mychip_pokeBA1(&dev, BA1_DREG, DREG_REGID_TRAP_SELECT + idx);
-		snd_mychip_pokeBA1(&dev, BA1_TWPR, 0xFFFF);
+		snd_mychip_pokeBA1(dev, BA1_DREG, DREG_REGID_TRAP_SELECT + idx);
+		snd_mychip_pokeBA1(dev, BA1_TWPR, 0xFFFF);
 	}
-	snd_mychip_pokeBA1(&dev, BA1_DREG, 0);
+	snd_mychip_pokeBA1(dev, BA1_DREG, 0);
 
 	/*
 	 *  Set the frame timer to reflect the number of cycles per frame.
 	 */
-	snd_mychip_pokeBA1(&dev, BA1_FRMT, 0xadf);
+	snd_mychip_pokeBA1(dev, BA1_FRMT, 0xadf);
 }
 
 /* Configure hardware registers (### CONF_HARDWARE ###) */
@@ -513,9 +513,9 @@ static void dev_set_playback_sample_rate(DEV_STRUCT *dev, u16_t sample_rate) {
 	 *  Fill in the SampleRateConverter control block.
 	 */
 
-	snd_mychip_pokeBA1(&dev, BA1_PSRC,
+	snd_mychip_pokeBA1(dev, BA1_PSRC,
 			((correctionPerSec << 16) & 0xFFFF0000) | (correctionPerGOF & 0xFFFF));
-	snd_mychip_pokeBA1(&dev, BA1_PPI, phiIncr);
+	snd_mychip_pokeBA1(dev, BA1_PPI, phiIncr);
 
 
 	// u32_t i, data = 0, base0 = base[0];
@@ -595,12 +595,12 @@ static void dev_set_capture_sample_rate(DEV_STRUCT *dev, unsigned int rate)
 	/*
 	 *  Fill in the VariDecimate control block.
 	 */
-	snd_mychip_pokeBA1(&dev, BA1_CSRC,
+	snd_mychip_pokeBA1(dev, BA1_CSRC,
 			((correctionPerSec << 16) & 0xFFFF0000) | (correctionPerGOF & 0xFFFF));
-	snd_mychip_pokeBA1(&dev, BA1_CCI, coeffIncr);
-	snd_mychip_pokeBA1(&dev, BA1_CD,
+	snd_mychip_pokeBA1(dev, BA1_CCI, coeffIncr);
+	snd_mychip_pokeBA1(dev, BA1_CD,
 			(((BA1_VARIDEC_BUF_1 + (initialDelay << 2)) << 16) & 0xFFFF0000) | 0x80);
-	snd_mychip_pokeBA1(&dev, BA1_CPI, phiIncr);
+	snd_mychip_pokeBA1(dev, BA1_CPI, phiIncr);
 
 	/*
 	 *  Figure out the frame group length for the write back task.  Basically,
@@ -623,11 +623,11 @@ static void dev_set_capture_sample_rate(DEV_STRUCT *dev, unsigned int rate)
 	/*
 	 * Fill in the WriteBack control block.
 	 */
-	snd_mychip_pokeBA1(&dev, BA1_CFG1, frameGroupLength);
-	snd_mychip_pokeBA1(&dev, BA1_CFG2, (0x00800000 | frameGroupLength));
-	snd_mychip_pokeBA1(&dev, BA1_CCST, 0x0000FFFF);
-	snd_mychip_pokeBA1(&dev, BA1_CSPB, ((65536 * rate) / 24000));
-	snd_mychip_pokeBA1(&dev, (BA1_CSPB + 4), 0x0000FFFF);
+	snd_mychip_pokeBA1(dev, BA1_CFG1, frameGroupLength);
+	snd_mychip_pokeBA1(dev, BA1_CFG2, (0x00800000 | frameGroupLength));
+	snd_mychip_pokeBA1(dev, BA1_CCST, 0x0000FFFF);
+	snd_mychip_pokeBA1(dev, BA1_CSPB, ((65536 * rate) / 24000));
+	snd_mychip_pokeBA1(dev, (BA1_CSPB + 4), 0x0000FFFF);
 }
 /* Set DAC and ADC format (### SET_FORMAT ###)*/
 static void dev_set_format(u32_t *base, u32_t bits, u32_t sign,
@@ -726,11 +726,10 @@ static u32_t dev_read_dma_current(u32_t *base, int sub_dev) {
 }
 
 /* Pause the DMA (### PAUSE_DMA ###) */
-static void dev_pause_dma(u32_t *base, int sub_dev) {
-	u32_t base0 = base[0];
+static void dev_pause_dma(DEV_STRUCT *dev, int sub_dev) {
 	u32_t tmp;
 	if (sub_dev == DAC) {
-		tmp = snd_mychip_peekBA1(&dev, BA1_PCTL);
+		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
 		snd_mychip_pokeBA1(&dev, BA1_PCTL, tmp);
 
@@ -743,19 +742,18 @@ static void dev_pause_dma(u32_t *base, int sub_dev) {
 }
 
 /* Resume the DMA (### RESUME_DMA ###) */
-static void dev_resume_dma(u32_t *base, int sub_dev) {
-	u32_t base0 = base[0];
+static void dev_resume_dma(DEV_STRUCT *dev, int sub_dev) {
 	u32_t tmp;
 
 	if (sub_dev == DAC) {
-		tmp = snd_mychip_peekBA1(&dev, BA1_PCTL);
+		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
-		snd_mychip_pokeBA1(&dev, BA1_PCTL, chip->play_ctl | tmp);
+		snd_mychip_pokeBA1(dev, BA1_PCTL, chip->play_ctl | tmp);
 	}
 	if (sub_dev == ADC) {
-		tmp = snd_mychip_peekBA1(&dev, BA1_CCTL);
+		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
 		tmp &= 0xffff0000;
-		snd_mychip_pokeBA1(&dev, BA1_CCTL, chip->capt_ctl | tmp);
+		snd_mychip_pokeBA1(dev, BA1_CCTL, chip->capt_ctl | tmp);
 
 	}
 }
@@ -764,10 +762,10 @@ static void dev_resume_dma(u32_t *base, int sub_dev) {
  * -- Return interrupt status */
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev) {
 	u32_t status, base0 = base[0];
-	status = snd_mychip_peekBA0(&dev, BA0_HISR);
+	status = snd_mychip_peekBA0(dev, BA0_HISR);
 	//sdr_in32(base0, REG_DAC_HDSR);
 	//sdr_in32(base0, REG_ADC_HDSR);
-	snd_mychip_pokeBA0(&dev, BA0_HICR, HICR_CHGM | HICR_IEV);
+	snd_mychip_pokeBA0(dev, BA0_HICR, HICR_CHGM | HICR_IEV);
 	return status;
 }
 
@@ -776,26 +774,26 @@ static void dev_intr_enable(DEV_STRUCT *dev, int flag) {
 	u32_t data, base0 = base[0], tmp;
 	if (flag == INTR_ENABLE) {
 		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
-		tmp = snd_mychip_peekBA0(&dev, BA1_PFIE);
+		tmp = snd_mychip_peekBA0(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
-		snd_mychip_pokeBA1(&dev, BA1_PFIE, tmp);	/* playback interrupt enable */
+		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);	/* playback interrupt enable */
 
-		tmp = snd_mychip_peekBA1(&dev, BA1_CIE);
+		tmp = snd_mychip_peekBA1(dev, BA1_CIE);
 		tmp &= ~0x0000003f;
 		tmp |=  0x00000001;
-		snd_mychip_pokeBA1(&dev, BA1_CIE, tmp);	/* capture interrupt enable */
+		snd_mychip_pokeBA1(dev, BA1_CIE, tmp);	/* capture interrupt enable */
 	}
 	else if (flag == INTR_DISABLE) {
 		snd_mychip_pokeBA0(chip, BA0_HICR, HICR_IEV | HICR_CHGM);
-		tmp = snd_mychip_peekBA1(&dev, BA1_PFIE);
+		tmp = snd_mychip_peekBA1(dev, BA1_PFIE);
 		tmp &= ~0x0000f03f;
 		tmp |=  0x00000010;
-		snd_mychip_pokeBA1(&dev, BA1_PFIE, tmp);     /* playback interrupt disable */
+		snd_mychip_pokeBA1(dev, BA1_PFIE, tmp);     /* playback interrupt disable */
 
-		tmp = snd_mychip_peekBA1(&dev, BA1_CIE);
+		tmp = snd_mychip_peekBA1(dev, BA1_CIE);
 		tmp &= ~0x0000003f;
 		tmp |=  0x00000011;
-		snd_mychip_pokeBA1(&dev, BA1_CIE, tmp); /* capture interrupt disable */
+		snd_mychip_pokeBA1(dev, BA1_CIE, tmp); /* capture interrupt disable */
 	}
 }
 
@@ -811,21 +809,21 @@ static int dev_probe(void) {
 	   This code is quite device independent and you can copy it. 
 	   (just make sure to get the bugs out first)*/
 	pci_init();
-	device = pci_first_dev(&devind, &vid, &did);
+	device = pci_first_dev(devind, &vid, &did);
 	while (&device > 0) {
 		if (vid == VENDOR_ID && did == DEVICE_ID)
 			break;
-		device = pci_next_dev(&devind, &vid, &did);
+		device = pci_next_dev(devind, &vid, &did);
 	}
 	if (vid != VENDOR_ID || did != DEVICE_ID)
 		return EIO;
-	pci_reserve(&devind);
+	pci_reserve(devind);
 
 	for (i = 0; i < 6; i++)
 		dev.base[i] = 0;
 #ifdef DMA_BASE_IOMAP
 	for (i = 0; i < 6; i++) {
-		if (pci_get_bar(&devind, PCI_BAR + i * 4, &base, &size, &ioflag)) {
+		if (pci_get_bar(devind, PCI_BAR + i * 4, &base, &size, &ioflag)) {
 			/* printf("SDR: Fail to get PCI BAR %d\n", i); */
 			continue;
 		}
