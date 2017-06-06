@@ -7,7 +7,7 @@ u8_t mixer_value[] = {
 	0x7e, 0x3d, 0x01, 0x01, 0x00, 0x00, 0x03, 0x00,
 	0x00, 0x01
 };
-int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
+int get_set_volume(DEV_STRUCT *dev, struct volume_level *level, int flag) {
 	int max_level, cmd_left, cmd_right;
 
 	max_level = 0x1f;
@@ -56,18 +56,18 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 		else if (level->left > max_level)
 			level->left = max_level;
 		/* ### WRITE_MIXER_REG ### */
-		dev_mixer_write(base, cmd_left, 0x1f - level->left);
+		dev_mixer_write(dev, cmd_left, 0x1f - level->left);
 		/* ### WRITE_MIXER_REG ### */
-		dev_mixer_write(base, cmd_right, 0x1f - level->right);
+		dev_mixer_write(dev, cmd_right, 0x1f - level->right);
 		mixer_value[cmd_left] = 0x1f - level->left;
 		mixer_value[cmd_right] = 0x1f - level->right;
 	}
 	/* Get volume (mixer register can not be read in ak4531 codec) */
 	else {
 		/* ### READ_MIXER_REG ### */
-		dev_mixer_read(base, cmd_left);
+		dev_mixer_read(dev, cmd_left);
 		/* ### READ_MIXER_REG ### */
-		dev_mixer_read(base, cmd_right);
+		dev_mixer_read(dev, cmd_right);
 		level->left = 0x1f - mixer_value[cmd_left];
 		level->right = 0x1f - mixer_value[cmd_right];
 	}
@@ -76,7 +76,7 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 #endif
 
 #ifdef MIXER_SB16
-int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
+int get_set_volume(DEV_STRUCT *dev, struct volume_level *level, int flag) {
 	int max_level, shift, cmd_left, cmd_right;
 
 	max_level = 0x0f;
@@ -137,16 +137,16 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 		else if (level->left > max_level)
 			level->left = max_level;
 		/* ### WRITE_MIXER_REG ### */
-		dev_mixer_write(base, cmd_left, level->left << shift);
+		dev_mixer_write(dev, cmd_left, level->left << shift);
 		/* ### WRITE_MIXER_REG ### */
-		dev_mixer_write(base, cmd_right, level->right << shift);
+		dev_mixer_write(dev, cmd_right, level->right << shift);
 	}
 	/* Get volume */
 	else {
 		/* ### READ_MIXER_REG ### */
-		level->left = dev_mixer_read(base, cmd_left);
+		level->left = dev_mixer_read(dev, cmd_left);
 		/* ### READ_MIXER_REG ### */
-		level->right = dev_mixer_read(base, cmd_right);
+		level->right = dev_mixer_read(dev, cmd_right);
 		level->left >>= shift;
 		level->right >>= shift;
 	}
@@ -155,7 +155,7 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 #endif
 
 #ifdef MIXER_AC97
-int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
+int get_set_volume(DEV_STRUCT *dev, struct volume_level *level, int flag) {
 	int max_level, cmd, data;
 
 	max_level = 0x1f;
@@ -199,12 +199,12 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 			level->left = max_level;
 		data = (max_level - level->left) << 8 | (max_level - level->right);
 		/* ### WRITE_MIXER_REG ### */
-		dev_mixer_write(base, cmd, data);
+		dev_mixer_write(dev, cmd, data);
 	}
 	/* Get volume */
 	else {
 		/* ### READ_MIXER_REG ### */
-		data = dev_mixer_read(base, cmd);
+		data = dev_mixer_read(dev, cmd);
 		level->left = (u16_t)(data >> 8);
 		level->right = (u16_t)(data & 0xff);
 		if (level->right < 0)
@@ -223,50 +223,50 @@ int get_set_volume(u32_t *base, struct volume_level *level, int flag) {
 #endif
 
 /* Set default mixer volume */
-void dev_set_default_volume(u32_t *base) {
+void dev_set_default_volume(DEV_STRUCT *dev) {
 	int i;
 #ifdef MIXER_AK4531
 	for (i = 0; i <= 0x19; i++)
-		dev_mixer_write(base, i, mixer_value[i]);
+		dev_mixer_write(dev, i, mixer_value[i]);
 #endif
 #ifdef MIXER_SB16
-	dev_mixer_write(base, SB16_MASTER_LEFT, 0x18 << 3);
-	dev_mixer_write(base, SB16_MASTER_RIGHT, 0x18 << 3);
-	dev_mixer_write(base, SB16_DAC_LEFT, 0x0f << 4);
-	dev_mixer_write(base, SB16_DAC_RIGHT, 0x0f << 4);
-	dev_mixer_write(base, SB16_FM_LEFT, 0x08 << 4);
-	dev_mixer_write(base, SB16_FM_RIGHT, 0x08 << 4);
-	dev_mixer_write(base, SB16_CD_LEFT, 0x08 << 4);
-	dev_mixer_write(base, SB16_CD_RIGHT, 0x08 << 4);
-	dev_mixer_write(base, SB16_LINE_LEFT, 0x08 << 4);
-	dev_mixer_write(base, SB16_LINE_RIGHT, 0x08 << 4);
-	dev_mixer_write(base, SB16_MIC_LEVEL, 0x0f << 4);
-	dev_mixer_write(base, SB16_PC_LEVEL, 0x02 << 6);
-	dev_mixer_write(base, SB16_TREBLE_LEFT, 0x08 << 4);
-	dev_mixer_write(base, SB16_TREBLE_RIGHT, 0x08 << 4);
-	dev_mixer_write(base, SB16_BASS_LEFT, 0x08 << 4);
-	dev_mixer_write(base, SB16_BASS_RIGHT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_MASTER_LEFT, 0x18 << 3);
+	dev_mixer_write(dev, SB16_MASTER_RIGHT, 0x18 << 3);
+	dev_mixer_write(dev, SB16_DAC_LEFT, 0x0f << 4);
+	dev_mixer_write(dev, SB16_DAC_RIGHT, 0x0f << 4);
+	dev_mixer_write(dev, SB16_FM_LEFT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_FM_RIGHT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_CD_LEFT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_CD_RIGHT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_LINE_LEFT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_LINE_RIGHT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_MIC_LEVEL, 0x0f << 4);
+	dev_mixer_write(dev, SB16_PC_LEVEL, 0x02 << 6);
+	dev_mixer_write(dev, SB16_TREBLE_LEFT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_TREBLE_RIGHT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_BASS_LEFT, 0x08 << 4);
+	dev_mixer_write(dev, SB16_BASS_RIGHT, 0x08 << 4);
 #endif
 
 #ifdef MIXER_AC97
-	dev_mixer_write(base, AC97_POWERDOWN, 0x0000);
+	dev_mixer_write(dev, AC97_POWERDOWN, 0x0000);
 	for (i = 0; i < 50000; i++) {
-		if (dev_mixer_read(base, AC97_POWERDOWN) & 0x03)
+		if (dev_mixer_read(dev, AC97_POWERDOWN) & 0x03)
 			break;
 		micro_delay(100);
 	}
 	if (i == 50000)
 		printf("SDR: AC97 is not ready\n");
-	dev_mixer_write(base, AC97_MASTER_VOLUME, 0x0000);
-	dev_mixer_write(base, AC97_MONO_VOLUME, 0x8000);
-	dev_mixer_write(base, AC97_PHONE_VOLUME, 0x8008);
-	dev_mixer_write(base, AC97_MIC_VOLUME, 0x0000);
-	dev_mixer_write(base, AC97_LINE_IN_VOLUME, 0x0303);
-	dev_mixer_write(base, AC97_CD_VOLUME, 0x0808);
-	dev_mixer_write(base, AC97_AUX_IN_VOLUME, 0x0808);
-	dev_mixer_write(base, AC97_PCM_OUT_VOLUME, 0x0808);
-	dev_mixer_write(base, AC97_RECORD_GAIN_VOLUME, 0x0000);
-	dev_mixer_write(base, AC97_RECORD_SELECT, 0x0000);
-	dev_mixer_write(base, AC97_GENERAL_PURPOSE, 0x0000);
+	dev_mixer_write(dev, AC97_MASTER_VOLUME, 0x0000);
+	dev_mixer_write(dev, AC97_MONO_VOLUME, 0x8000);
+	dev_mixer_write(dev, AC97_PHONE_VOLUME, 0x8008);
+	dev_mixer_write(dev, AC97_MIC_VOLUME, 0x0000);
+	dev_mixer_write(dev, AC97_LINE_IN_VOLUME, 0x0303);
+	dev_mixer_write(dev, AC97_CD_VOLUME, 0x0808);
+	dev_mixer_write(dev, AC97_AUX_IN_VOLUME, 0x0808);
+	dev_mixer_write(dev, AC97_PCM_OUT_VOLUME, 0x0808);
+	dev_mixer_write(dev, AC97_RECORD_GAIN_VOLUME, 0x0000);
+	dev_mixer_write(dev, AC97_RECORD_SELECT, 0x0000);
+	dev_mixer_write(dev, AC97_GENERAL_PURPOSE, 0x0000);
 #endif
 }
