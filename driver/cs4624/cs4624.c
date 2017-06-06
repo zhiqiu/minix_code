@@ -50,7 +50,7 @@ static void dev_intr_enable(DEV_STRUCT *dev, int flag);
 
 // snd_mychip_codec_write
 void dev_mixer_write(DEV_STRUCT* dev, u32_t reg, u32_t val) {
-	u32_t i, data, base0 = base[0];
+	u32_t i, data;
 
 	/*
 	 *  1. Write ACCAD = Command Address Register = 46Ch for AC97 register address
@@ -110,7 +110,7 @@ end:
 /* Read the data from mixer register (### READ_MIXER_REG ###) */
 // snd_mychip_codec_read
 u32_t dev_mixer_read(DEV_STRUCT* dev, u32_t reg) {
-	u32_t i, data, base0 = base[0], tmp, result, count;
+	u32_t i, data, tmp, result, count;
 	/*
 	 *  1. Write ACCAD = Command Address Register = 46Ch for AC97 register address
 	 *  2. Write ACCDA = Command Data Register = 470h    for data to write to AC97 
@@ -127,7 +127,7 @@ u32_t dev_mixer_read(DEV_STRUCT* dev, u32_t reg) {
 		printf("mychip: ACCTL_VFRM not set 0x%x\n",tmp);
 		snd_mychip_pokeBA0(dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
 		micro_delay(50);
-		tmp = snd_mychip_pokeBA0(dev, BA0_ACCTL);
+		tmp = snd_mychip_peekBA0(dev, BA0_ACCTL);
 		snd_mychip_pokeBA0(dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
 
 	}
@@ -215,15 +215,15 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  out in a known state, and blast the master serial port control register
 	 *  to zero so that the serial ports also start out in a known state.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, 0);
-	snd_mychip_pokeBA0(&dev, BA0_SERMC1, 0);
+	snd_mychip_pokeBA0(dev, BA0_CLKCR1, 0);
+	snd_mychip_pokeBA0(dev, BA0_SERMC1, 0);
 
 	/*
 	 *  If we are in AC97 mode, then we must set the part to a host controlled
 	 *  AC-link.  Otherwise, we won't be able to bring up the link.
 	 */        
 
-	snd_mychip_pokeBA0(&dev, BA0_SERACC, SERACC_HSP | SERACC_CHIP_TYPE_1_03); /* 1.03 codec */
+	snd_mychip_pokeBA0(dev, BA0_SERACC, SERACC_HSP | SERACC_CHIP_TYPE_1_03); /* 1.03 codec */
 
 
 	/*
@@ -232,17 +232,17 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  there might be logic external to the CS461x that uses the ARST# line
 	 *  for a reset.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, 0);
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, 0);
 
 	udelay(50);
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_RSTN);
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_RSTN);
 
 	/*
 	 *  The first thing we do here is to enable sync generation.  As soon
 	 *  as we start receiving bit clock, we'll start producing the SYNC
 	 *  signal.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_ESYN | ACCTL_RSTN);
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_ESYN | ACCTL_RSTN);
 
 	/*
 	 *  Now wait for a short while to allow the AC97 part to start
@@ -255,21 +255,21 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  Set the serial port timing configuration, so that
 	 *  the clock control circuit gets its clock from the correct place.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_SERMC1, SERMC1_PTC_AC97);
+	snd_mychip_pokeBA0(dev, BA0_SERMC1, SERMC1_PTC_AC97);
 
 	/*
 	 *  Write the selected clock control setup to the hardware.  Do not turn on
 	 *  SWCE yet (if requested), so that the devices clocked by the output of
 	 *  PLL are not clocked until the PLL is stable.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_PLLCC, PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
-	snd_mychip_pokeBA0(&dev, BA0_PLLM, 0x3a);
-	snd_mychip_pokeBA0(&dev, BA0_CLKCR2, CLKCR2_PDIVS_8);
+	snd_mychip_pokeBA0(dev, BA0_PLLCC, PLLCC_LPF_1050_2780_KHZ | PLLCC_CDR_73_104_MHZ);
+	snd_mychip_pokeBA0(dev, BA0_PLLM, 0x3a);
+	snd_mychip_pokeBA0(dev, BA0_CLKCR2, CLKCR2_PDIVS_8);
 
 	/*
 	 *  Power up the PLL.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, CLKCR1_PLLP);
+	snd_mychip_pokeBA0(dev, BA0_CLKCR1, CLKCR1_PLLP);
 
 	/*
 	 *  Wait until the PLL has stabilized.
@@ -279,12 +279,12 @@ static int dev_init(DEV_STRUCT* dev) {
 	/*
 	 *  Turn on clocking of the core so that we can setup the serial ports.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_CLKCR1, CLKCR1_PLLP | CLKCR1_SWCE);
+	snd_mychip_pokeBA0(dev, BA0_CLKCR1, CLKCR1_PLLP | CLKCR1_SWCE);
 
 	/*
 	 * Enable FIFO  Host Bypass
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_SERBCF, SERBCF_HBP);
+	snd_mychip_pokeBA0(dev, BA0_SERBCF, SERBCF_HBP);
 
 	/*
 	 *  Fill the serial port FIFOs with silence.
@@ -300,9 +300,9 @@ static int dev_init(DEV_STRUCT* dev) {
 	 *  Write the serial port configuration to the part.  The master
 	 *  enable bit is not set until all other values have been written.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_SERC1, SERC1_SO1F_AC97 | SERC1_SO1EN);
-	snd_mychip_pokeBA0(&dev, BA0_SERC2, SERC2_SI1F_AC97 | SERC1_SO1EN);
-	snd_mychip_pokeBA0(&dev, BA0_SERMC1, SERMC1_PTC_AC97 | SERMC1_MSPE);
+	snd_mychip_pokeBA0(dev, BA0_SERC1, SERC1_SO1F_AC97 | SERC1_SO1EN);
+	snd_mychip_pokeBA0(dev, BA0_SERC2, SERC2_SI1F_AC97 | SERC1_SO1EN);
+	snd_mychip_pokeBA0(dev, BA0_SERMC1, SERMC1_PTC_AC97 | SERMC1_MSPE);
 
 	mdelay(5);
 
@@ -316,7 +316,7 @@ static int dev_init(DEV_STRUCT* dev) {
 		 *  Read the AC97 status register to see if we've seen a CODEC READY
 		 *  signal from the AC97 codec.
 		 */
-		if (snd_mychip_peekBA0(&dev, BA0_ACSTS) & ACSTS_CRDY)
+		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_CRDY)
 			goto ok1;
 		msleep(10);
 	}
@@ -331,7 +331,7 @@ ok1:
 	 *  Assert the vaid frame signal so that we can start sending commands
 	 *  to the AC97 codec.
 	 */
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_VFRM | ACCTL_ESYN | ACCTL_RSTN);
 
 
 	/*
@@ -344,7 +344,7 @@ ok1:
 		 *  Read the input slot valid register and see if input slots 3 and
 		 *  4 are valid yet.
 		 */
-		if ((snd_mychip_peekBA0(&dev, BA0_ACISV) & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
+		if ((snd_mychip_peekBA0(dev, BA0_ACISV) & (ACISV_ISV3 | ACISV_ISV4)) == (ACISV_ISV3 | ACISV_ISV4))
 			goto ok2;
 		msleep(10);
 	}
@@ -367,7 +367,7 @@ ok2:
 	 *  commense the transfer of digital audio data to the AC97 codec.
 	 */
 
-	snd_mychip_pokeBA0(&dev, BA0_ACOSV, ACOSV_SLV3 | ACOSV_SLV4);
+	snd_mychip_pokeBA0(dev, BA0_ACOSV, ACOSV_SLV3 | ACOSV_SLV4);
 
 
 	/*
@@ -385,6 +385,7 @@ ok2:
 
 	return OK;
 }
+
 int snd_mychip_download(DEV_STRUCT *dev,
 		u32_t *src,
 		unsigned long offset,
