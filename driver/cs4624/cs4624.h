@@ -182,24 +182,11 @@ u32_t dev_mixer_read(DEV_STRUCT *dev, u32_t reg);
 // u32_t == usigned long
 // u16_t == usigned int
 // u8_t  == usigned char
-void snd_mychip_pokeBA1(DEV_STRUCT *dev, u32_t reg, u32_t val){
-	u16_t bank = reg >> 16;
-	u16_t offset = reg & 0xffff;
-	sdr_out32(dev->ba1_region.idx[bank].remap_addr, offset, val);
-}
+void snd_mychip_pokeBA1(DEV_STRUCT *dev, u32_t reg, u32_t val);
 
-u32_t snd_mychip_peekBA1(DEV_STRUCT *dev, u32_t reg){
-	u16_t bank = reg >> 16;
-	u16_t offset = reg & 0xffff;
-	return sdr_in32(dev->ba1_region.idx[bank].remap_addr, offset);
-}
+u32_t snd_mychip_peekBA1(DEV_STRUCT *dev, u32_t reg);
 
-void snd_mychip_pokeBA0(DEV_STRUCT *dev, u32_t offset, u32_t val){
-	sdr_out32(dev->ba0_region.idx[0].remap_addr, offset, val);
-}
-
-u32_t snd_mychip_peekBA0(DEV_STRUCT *dev, u32_t offset){
-	return sdr_in32(dev->ba0_region.idx[0].remap_addr, offset);
-}
+void snd_mychip_pokeBA0(DEV_STRUCT *dev, u32_t offset, u32_t val);
+u32_t snd_mychip_peekBA0(DEV_STRUCT *dev, u32_t offset);
 
 #endif
