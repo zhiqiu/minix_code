@@ -49,7 +49,7 @@ static void dev_intr_enable(DEV_STRUCT *dev, int flag);
 /* Write the data to mixer register (### WRITE_MIXER_REG ###) */
 
 // snd_mychip_codec_write
-void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
+void dev_mixer_write(DEV_STRUCT* dev, u32_t reg, u32_t val) {
 	u32_t i, data, base0 = base[0];
 
 	/*
@@ -77,13 +77,13 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 	//sdr_out32(base0, REG_CODEC_DATA, val);
 	//sdr_out32(base0, REG_CODEC_CTRL, 0x0e);
 
-	snd_mychip_pokeBA0(&dev, BA0_ACCAD , reg);
-	snd_mychip_pokeBA0(&dev, BA0_ACCDA , val);
-	snd_mychip_peekBA0(&dev, BA0_ACCTL);
+	snd_mychip_pokeBA0(dev, BA0_ACCAD , reg);
+	snd_mychip_pokeBA0(dev, BA0_ACCDA , val);
+	snd_mychip_peekBA0(dev, BA0_ACCTL);
 
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
 
 	for (i = 0; i < 50000; i++) {
@@ -96,7 +96,7 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 07h
 		 */
 		//if codec_done
-		if (!(snd_mychip_peekBA0(&dev, BA0_ACCTL) & ACCTL_DCV)) {
+		if (!(snd_mychip_peekBA0(dev, BA0_ACCTL) & ACCTL_DCV)) {
 			goto end;
 		}
 	}
@@ -109,7 +109,7 @@ end:
 
 /* Read the data from mixer register (### READ_MIXER_REG ###) */
 // snd_mychip_codec_read
-u32_t dev_mixer_read(u32_t *base, u32_t reg) {
+u32_t dev_mixer_read(DEV_STRUCT* dev, u32_t reg) {
 	u32_t i, data, base0 = base[0], tmp, result, count;
 	/*
 	 *  1. Write ACCAD = Command Address Register = 46Ch for AC97 register address
@@ -120,15 +120,15 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  6. Read ACSTS = Status Register = 464h, check VSTS bit
 	 */
 
-	snd_mychip_peekBA0(&dev, BA0_ACSDA);
+	snd_mychip_peekBA0(dev, BA0_ACSDA);
 
-	tmp = snd_mychip_peekBA0(&dev, BA0_ACCTL);
+	tmp = snd_mychip_peekBA0(dev, BA0_ACCTL);
 	if ((tmp & ACCTL_VFRM) == 0) {
 		printf("mychip: ACCTL_VFRM not set 0x%x\n",tmp);
-		snd_mychip_pokeBA0(&dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
+		snd_mychip_pokeBA0(dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
 		micro_delay(50);
-		tmp = snd_mychip_pokeBA0(&dev, BA0_ACCTL + offset);
-		snd_mychip_pokeBA0(&dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
+		tmp = snd_mychip_pokeBA0(dev, BA0_ACCTL);
+		snd_mychip_pokeBA0(dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
 
 	}
 
@@ -145,14 +145,14 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  set RSTN - ARST# inactive, AC97 codec not reset
 	 */
 
-	snd_mychip_pokeBA0(&dev, BA0_ACCAD, reg);
-	snd_mychip_pokeBA0(&dev, BA0_ACCDA, 0);
+	snd_mychip_pokeBA0(dev, BA0_ACCAD, reg);
+	snd_mychip_pokeBA0(dev, BA0_ACCDA, 0);
 
 
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
+	snd_mychip_pokeBA0(dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
-	snd_mychip_pokeBA0(&dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
 	/*
@@ -167,7 +167,7 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 		 *  Now, check to see if the read has completed.
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 17h
 		 */
-		if (!(snd_mychip_peekBA0(&dev, BA0_ACCTL) & ACCTL_DCV))
+		if (!(snd_mychip_peekBA0(dev, BA0_ACCTL) & ACCTL_DCV))
 			goto ok1;
 	}
 	printf("AC'97 read problem (ACCTL_DCV), reg = 0x%x\n", reg);
@@ -184,7 +184,7 @@ ok1:
 		 *  ACSTS = Status Register = 464h
 		 *  VSTS - Valid Status
 		 */
-		if (snd_mychip_peekBA0(&dev, BA0_ACSTS) & ACSTS_VSTS)
+		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_VSTS)
 			goto ok2;
 		micro_delay(10);
 	}
@@ -198,7 +198,7 @@ ok2:
 	 *  Read the data returned from the AC97 register.
 	 *  ACSDA = Status Data Register = 474h
 	 */
-	result = snd_mychip_peekBA0(&dev, BA0_ACSDA + offset);
+	result = snd_mychip_peekBA0(dev, BA0_ACSDA);
 end:
 	return result;
 }
