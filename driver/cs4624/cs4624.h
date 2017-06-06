@@ -1,5 +1,5 @@
-#ifndef _SDR_H
-#define _SDR_H
+#ifndef _CS4624_H
+#define _CS4624_H
 /* ======= General Parameter ======= */
 /* Global configure */
 #define DMA_LENGTH_BY_FRAME
