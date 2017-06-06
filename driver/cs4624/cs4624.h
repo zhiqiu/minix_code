@@ -173,6 +173,8 @@ typedef struct DEV_STRUCT {
 	char irq;
 	char revision;
 	u32_t intr_status;
+	u32_t play_ctl;
+	u32_t capt_ctl;
 } DEV_STRUCT;
 
 void dev_mixer_write(u32_t *base, u32_t reg, u32_t val);
@@ -189,15 +191,15 @@ void snd_mychip_pokeBA1(DEV_STRUCT * dev, u32_t reg, u32_t val){
 u32_t snd_mychip_peekBA1(DEV_STRUCT * dev, u32_t reg){
 	u16_t bank = reg >> 16;
 	u16_t offset = reg & 0xffff;
-	sdr_in32(dev->ba1_region.idx[bank].remap_addr, offset);
+	return sdr_in32(dev->ba1_region.idx[bank].remap_addr, offset);
 }
 
 void snd_mychip_pokeBA0(DEV_STRUCT * dev, u32_t offset, u32_t val){
-	writel(dev->ba0_region.idx[0].remap_addr, offset, val);
+	sdr_out32(dev->ba0_region.idx[0].remap_addr, offset, val);
 }
 
 u32_t snd_mychip_peekBA0(DEV_STRUCT * dev, u32_t offset){
-	sdr_in32(dev->ba0_region.idx[0].remap_addr, offset);
+	return sdr_in32(dev->ba0_region.idx[0].remap_addr, offset);
 }
 
 #endif
