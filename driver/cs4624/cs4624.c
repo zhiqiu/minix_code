@@ -40,7 +40,7 @@ static void dev_pause_dma(u32_t *base, int sub_dev);
 static void dev_resume_dma(u32_t *base, int sub_dev);
 static void dev_intr_other(u32_t *base, u32_t status);
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev);
-static void dev_intr_enable(DEV_STRUCT *dev, int flag)
+static void dev_intr_enable(DEV_STRUCT *dev, int flag);
 
 /* ======= Developer implemented function ======= */
 /* ====== Self-defined function ====== */
@@ -77,13 +77,13 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 	//sdr_out32(base0, REG_CODEC_DATA, val);
 	//sdr_out32(base0, REG_CODEC_CTRL, 0x0e);
 
-	sdr_out32(base0, BA0_ACCAD , reg);
-	sdr_out32(base0, BA0_ACCDA , val);
-	sdr_in32(dev, BA0_ACCTL);
+	snd_mychip_pokeBA0(dev, BA0_ACCAD , reg);
+	snd_mychip_pokeBA0(dev, BA0_ACCDA , val);
+	snd_mychip_pokeBA0(dev, BA0_ACCTL);
 
-	sdr_out32(base0, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, /* clear ACCTL_DCV */ ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
-	sdr_out32(base0, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_VFRM |
 			   ACCTL_ESYN | ACCTL_RSTN);
 
 	for (i = 0; i < 50000; i++) {
@@ -96,7 +96,7 @@ void dev_mixer_write(u32_t *base, u32_t reg, u32_t val) {
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 07h
 		 */
 		//if codec_done
-		if (!(sdr_in32(dev, BA0_ACCTL) & ACCTL_DCV)) {
+		if (!(snd_mychip_peekBA0(base0, BA0_ACCTL) & ACCTL_DCV)) {
 			goto end;
 		}
 	}
@@ -120,15 +120,15 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  6. Read ACSTS = Status Register = 464h, check VSTS bit
 	 */
 
-	sdr_in32(dev, BA0_ACSDA);
+	snd_mychip_peekBA0(dev, BA0_ACSDA);
 
-	tmp = sdr_in32(dev, BA0_ACCTL);
+	tmp = snd_mychip_peekBA0(dev, BA0_ACCTL);
 	if ((tmp & ACCTL_VFRM) == 0) {
 		printf("mychip: ACCTL_VFRM not set 0x%x\n",tmp);
-		sdr_out32(dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
+		snd_mychip_pokeBA0(dev, BA0_ACCTL, (tmp & (~ACCTL_ESYN)) | ACCTL_VFRM );
 		msleep(50);
-		tmp = sdr_in32(dev, BA0_ACCTL + offset);
-		sdr_out32(dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
+		tmp = snd_mychip_pokeBA0(dev, BA0_ACCTL + offset);
+		snd_mychip_pokeBA0(dev, BA0_ACCTL, tmp | ACCTL_ESYN | ACCTL_VFRM );
 
 	}
 
@@ -145,14 +145,14 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 	 *  set RSTN - ARST# inactive, AC97 codec not reset
 	 */
 
-	sdr_out32(dev, BA0_ACCAD, reg);
-	sdr_out32(dev, BA0_ACCDA, 0);
+	snd_mychip_pokeBA0(dev, BA0_ACCAD, reg);
+	snd_mychip_pokeBA0(dev, BA0_ACCDA, 0);
 
 
-	sdr_out32(dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
+	snd_mychip_pokeBA0(dev, BA0_ACCTL,/* clear ACCTL_DCV */ ACCTL_CRW | 
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
-	sdr_out32(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
+	snd_mychip_pokeBA0(dev, BA0_ACCTL, ACCTL_DCV | ACCTL_CRW |
 			ACCTL_VFRM | ACCTL_ESYN |
 			ACCTL_RSTN);
 	/*
@@ -167,7 +167,7 @@ u32_t dev_mixer_read(u32_t *base, u32_t reg) {
 		 *  Now, check to see if the read has completed.
 		 *  ACCTL = 460h, DCV should be reset by now and 460h = 17h
 		 */
-		if (!(sdr_in32(dev, BA0_ACCTL) & ACCTL_DCV))
+		if (!(snd_mychip_peekBA0(dev, BA0_ACCTL) & ACCTL_DCV))
 			goto ok1;
 	}
 	printf("AC'97 read problem (ACCTL_DCV), reg = 0x%x\n", reg);
@@ -184,7 +184,7 @@ ok1:
 		 *  ACSTS = Status Register = 464h
 		 *  VSTS - Valid Status
 		 */
-		if (sdr_in32(dev, BA0_ACSTS) & ACSTS_VSTS)
+		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_VSTS)
 			goto ok2;
 		udelay(10);
 	}
@@ -198,7 +198,7 @@ ok2:
 	 *  Read the data returned from the AC97 register.
 	 *  ACSDA = Status Data Register = 474h
 	 */
-	result = sdr_in32(dev, BA0_ACSDA + offset);
+	result = snd_mychip_peekBA0(dev, BA0_ACSDA + offset);
 end:
 	return result;
 }
