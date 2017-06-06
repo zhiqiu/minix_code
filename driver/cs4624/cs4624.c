@@ -15,6 +15,8 @@ sub_dev_t sub_dev[3];
 special_file_t special_file[3];
 drv_t drv;
 
+#define GOF_PER_SEC 200
+
 /* internal function */
 static int dev_probe(void);
 static int set_sample_rate(u32_t rate, int num);
@@ -28,7 +30,7 @@ static int free_buf(u32_t *val, int *len, int num);
 /* developer interface */
 static int dev_reset(u32_t *base);
 static void dev_configure(u32_t *base);
-static void dev_init_mixer(u32_t *base);
+static void dev_init_mixer(DEV_STRUCT *dev);
 static void dev_set_sample_rate(u32_t *base, u16_t sample_rate);
 static void dev_set_format(u32_t *base, u32_t bits, u32_t sign,
 							u32_t stereo, u32_t sample_count);
@@ -36,8 +38,8 @@ static void dev_start_channel(u32_t *base, int sub_dev);
 static void dev_stop_channel(u32_t *base, int sub_dev);
 static void dev_set_dma(u32_t *base, u32_t dma, u32_t len, int sub_dev);
 static u32_t dev_read_dma_current(u32_t *base, int sub_dev);
-static void dev_pause_dma(u32_t *base, int sub_dev);
-static void dev_resume_dma(u32_t *base, int sub_dev);
+static void dev_pause_dma(DEV_STRUCT *dev, int sub_dev);
+static void dev_resume_dma(DEV_STRUCT *dev, int sub_dev);
 static void dev_intr_other(u32_t *base, u32_t status);
 static u32_t dev_read_clear_intr_status(DEV_STRUCT *dev);
 static void dev_intr_enable(DEV_STRUCT *dev, int flag);
@@ -318,7 +320,7 @@ static int dev_init(DEV_STRUCT* dev) {
 		 */
 		if (snd_mychip_peekBA0(dev, BA0_ACSTS) & ACSTS_CRDY)
 			goto ok1;
-		msleep(10);
+		micro_delay(10);
 	}
 
 
@@ -412,7 +414,7 @@ int snd_mychip_download_image(DEV_STRUCT *dev)
 	unsigned long offset = 0;
 
 	for (idx = 0; idx < BA1_MEMORY_COUNT; idx++) {
-		if ((err = snd_mychip_download(&dev,
+		if ((err = snd_mychip_download(dev,
 						&BA1Struct.map[offset],
 						BA1Struct.memory[idx].offset,
 						BA1Struct.memory[idx].size)) < 0)
@@ -469,12 +471,12 @@ static void dev_configure(u32_t *base) {
 }
 
 /* Initialize the mixer (### INIT_MIXER ###) */
-static void dev_init_mixer(u32_t *base) {
-	dev_mixer_write(base, 0, 0);
+static void dev_init_mixer(DEV_STRUCT *dev) {
+	dev_mixer_write(dev, 0, 0);
 }
 
 /* Set DAC and ADC sample rate (### SET_SAMPLE_RATE ###) */
-static void dev_set_playback_sample_rate(DEV_STRUCT *dev, u16_t sample_rate) {
+static void dev_set_playback_sample_rate(DEV_STRUCT *dev, u16_t rate) {
 	unsigned long flags;
 	unsigned int tmp1, tmp2;
 	unsigned int phiIncr;
@@ -731,13 +733,13 @@ static void dev_pause_dma(DEV_STRUCT *dev, int sub_dev) {
 	if (sub_dev == DAC) {
 		tmp = snd_mychip_peekBA1(dev, BA1_PCTL);
 		tmp &= 0x0000ffff;
-		snd_mychip_pokeBA1(&dev, BA1_PCTL, tmp);
+		snd_mychip_pokeBA1(dev, BA1_PCTL, tmp);
 
 	}
 	if (sub_dev == ADC) {
-		tmp = snd_mychip_peekBA1(&dev, BA1_CCTL);
+		tmp = snd_mychip_peekBA1(dev, BA1_CCTL);
 		tmp &= 0xffff0000;
-		snd_mychip_pokeBA1(&dev, BA1_CCTL, tmp);
+		snd_mychip_pokeBA1(dev, BA1_CCTL, tmp);
 	}
 }
 
