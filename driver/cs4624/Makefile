@@ -9,4 +9,6 @@ FILESDIR= /etc/system.conf.d
 DPADD+= ${LIBAUDIODRIVER} ${LIBCHARDRIVER} ${LIBSYS}
 LDADD+= -laudiodriver -lchardriver -lsys
 
+MAN=
+
 .include <minix.service.mk>
