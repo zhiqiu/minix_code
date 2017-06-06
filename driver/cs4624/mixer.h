@@ -1,6 +1,6 @@
 #ifndef _MIXER_H_
 #define _MIXER_H_
-
+#include "cs4624.h"
 
 #ifdef MIXER_AK4531
 #define MASTER_VOLUME_LCH	0x00
