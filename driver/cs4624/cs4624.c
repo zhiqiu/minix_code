@@ -2,7 +2,7 @@
 #include "mixer.h"
 #include "cs4624_image.h"
 #include "register.h"
-#define MY__DEBUG
+#define MY_DEBUG
 #define CS4624_DEBUG
 #ifdef CS4624_DEBUG
 #define FUNC_LOG()  printf("FUNC_LOG: [%d][%s()]\n", __LINE__, __FUNCTION__)
@@ -889,6 +889,7 @@ static int dev_probe(void) {
 		printf("SDR: PCI BAR%d is 0x%08x\n", i, dev.base[i]);
 	printf("SDR: IRQ number is 0x%02x\n", dev.irq);
 #endif
+
 	return OK;
 }
 
