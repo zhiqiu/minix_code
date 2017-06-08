@@ -2,7 +2,7 @@
 #include "mixer.h"
 #include "cs4624_image.h"
 #include "register.h"
-
+#define MY__DEBUG
 #define CS4624_DEBUG
 #ifdef CS4624_DEBUG
 #define FUNC_LOG()  printf("FUNC_LOG: [%d][%s()]\n", __LINE__, __FUNCTION__)
@@ -375,7 +375,7 @@ ok1:
 	   Reloading the driver may help, if there's other soundcards 
 	   with the same problem I would like to know. (Benny) */
 
-	printf("ERROR: snd-mychip: never read ISV3 & ISV4 from AC'97\n");
+	printf("ERROR: snd_mychip: never read ISV3 & ISV4 from AC'97\n");
 	printf("       Try reloading the ALSA driver, if you find something\n");
 	printf("       broken or not working on your soundcard upon\n");
 	printf("       this message please report to alsa-devel@alsa-project.org\n");
@@ -1032,7 +1032,7 @@ void dev_set_region(void){
 /* ======= [Audio interface] Initialize hardware ======= */
 int drv_init_hw(void) {
 	int i;
-
+	FUNC_LOG();
 	/* Match the device */
 	if (dev_probe()) {
 		printf("SDR: No sound card found\n");
