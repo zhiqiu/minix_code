@@ -1,7 +1,15 @@
-The cs4281 driver is for Cirrus Logic 4281 (CrystalClear PCI) sound card.
+The cs4281 driver is for Cirrus Logic 4624 (CrystalClear PCI) sound card.
 
-This driver is referred to Minix(3.4.0) es1371 driver,
-Linux snd_cs4281 driver and Cirrus Logic 4281 Datasheet (Rev 1.1).
+This driver is referred to Minix(3.4.0) cs4281 driver and Linux snd_cs46xx driver.
+
+Usage:
+# make
+# make install
+# MAKEDEV /dev/audio (if /dev/audio doesn't allready exist)
+# service up /cs4624
+# playwav example.wav
 
 Revision 1.0 2016/12/28
-Authored by Jia-Ju Bai <baijiaju1990@163.com>
+Authored by Qiuliang Chen
+izhiqiu@foxmail.com
+
