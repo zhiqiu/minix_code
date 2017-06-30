@@ -404,7 +404,7 @@ ok2:
 	 */
 	/* tmp = snd_mychip_peekBA0(&dev, BA0_CLKCR1) & ~CLKCR1_SWCE; */
 	/* snd_mychip_pokeBA0(&dev, BA0_CLKCR1, tmp); */
-
+printf("ok2\n");
 	return OK;
 }
 
