@@ -1008,25 +1008,25 @@ void dev_set_region(void){
 	region = &dev.ba1_region.name.data0;
 	strcpy(region->name, "MYCHIP_BA1_data0");
 	region->base = dev.base[1] + BA1_SP_DMEM0;
-	region->remap_addr = dev.remap_base[0] + BA1_SP_DMEM0;
+	region->remap_addr = dev.remap_base[1] + BA1_SP_DMEM0;
 	region->size = MYCHIP_BA1_DATA0_SIZE;
 
 	region = &dev.ba1_region.name.data1;
 	strcpy(region->name, "MYCHIP_BA1_data1");
 	region->base = dev.base[1] + BA1_SP_DMEM1;
-	region->remap_addr = dev.remap_base[0] + BA1_SP_DMEM1;
+	region->remap_addr = dev.remap_base[1] + BA1_SP_DMEM1;
 	region->size = MYCHIP_BA1_DATA1_SIZE;
 
 	region = &dev.ba1_region.name.pmem;
 	strcpy(region->name, "MYCHIP_BA1_pmem");
 	region->base = dev.base[1] + BA1_SP_PMEM;
-	region->remap_addr = dev.remap_base[0] + BA1_SP_PMEM;
+	region->remap_addr = dev.remap_base[1] + BA1_SP_PMEM;
 	region->size = MYCHIP_BA1_PRG_SIZE;
 
 	region = &dev.ba1_region.name.reg;
 	strcpy(region->name, "MYCHIP_BA1_reg");
 	region->base = dev.base[1] + BA1_SP_REG;
-	region->remap_addr = dev.remap_base[0] + BA1_SP_REG;
+	region->remap_addr = dev.remap_base[1] + BA1_SP_REG;
 	region->size = MYCHIP_BA1_REG_SIZE;
 }
 
