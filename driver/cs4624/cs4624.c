@@ -1030,6 +1030,14 @@ void dev_set_region(void){
 	region->size = MYCHIP_BA1_REG_SIZE;
 }
 
+void print_region(){
+	printf("base:0x%08x, remap_addr:0x%08x \n", dev.ba0_region.idx[0].base, dev.ba0_region.idx[0].remap_addr);
+	printf("base:0x%08x, remap_addr:0x%08x \n", dev.ba1_region.idx[0].base, dev.ba1_region.idx[0].remap_addr);
+	printf("base:0x%08x, remap_addr:0x%08x \n", dev.ba1_region.idx[1].base, dev.ba1_region.idx[1].remap_addr);
+	printf("base:0x%08x, remap_addr:0x%08x \n", dev.ba1_region.idx[2].base, dev.ba1_region.idx[2].remap_addr);
+	printf("base:0x%08x, remap_addr:0x%08x \n", dev.ba1_region.idx[3].base, dev.ba1_region.idx[3].remap_addr);
+
+}
 /* ======= [Audio interface] Initialize hardware ======= */
 int drv_init_hw(void) {
 	int i;
@@ -1041,6 +1049,8 @@ int drv_init_hw(void) {
 	}
 
 	dev_set_region();
+
+	print_region();
 
 	/* init the device */
 	if (dev_init(&dev)!=OK) {
