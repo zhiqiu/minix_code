@@ -7,7 +7,7 @@ struct BA1struct {
 		unsigned long offset;
 		unsigned long size;
 	} memory[BA1_MEMORY_COUNT];
-	u32 map[BA1_DWORD_SIZE];
+	u32_t map[BA1_DWORD_SIZE];
 };
 
 
