@@ -1055,7 +1055,7 @@ int drv_init_hw(void) {
 	/* ### INIT_MIXER ### */
 
 	dev_init_mixer(&dev);
-
+FUNC_LOG();
 	/* Set default mixer volume */
 	dev_set_default_volume(&dev);
 
