@@ -1082,6 +1082,7 @@ FUNC_LOG();
 			sub_dev[i].DmaSize / sub_dev[i].NrOfDmaFragments;
 	}
 	return OK;
+FUNC_LOG();
 }
 
 /* ======= [Audio interface] Driver reset =======*/

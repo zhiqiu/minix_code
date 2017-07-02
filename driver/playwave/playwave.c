@@ -5,7 +5,7 @@
  *
  *  Michel R. Prevenier.
  */
-
+#define FUNC_LOG()  printf("FUNC_LOG: [%d], [%s()], [%s]\n", __LINE__, __FUNCTION__, __FILE__)
 #include <sys/types.h>
 #include <errno.h>
 #include <signal.h>
@@ -71,7 +71,7 @@ int open_audio(unsigned int *fragment_size, unsigned int channels,
 {
   unsigned int sign;
   int audio;
-
+FUNC_LOG();
   /* Open DSP */
   if ((audio = open("/dev/audio", O_RDWR)) < 0)
   {
@@ -145,7 +145,7 @@ int main ( int argc, char *argv[] )
     printf("%s not in MicroSoft PCM format\n", file_name);
     exit(1);
   }
-
+FUNC_LOG();
   /* Open audio device and set DSP parameters */
   audio = open_audio(&fragment_size, c_fields.Channels - 1,
 	c_fields.SamplesPerSec, s_fields.BitsPerSample);

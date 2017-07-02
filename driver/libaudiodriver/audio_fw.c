@@ -26,7 +26,7 @@
 #include <minix/ds.h>
 #include <sys/ioccom.h>
 
-#define FUNC_LOG()  printf("FUNC_LOG: [%d][%s()]\n", __LINE__, __FUNCTION__)
+#define FUNC_LOG()  printf("FUNC_LOG: [%d], [%s()], [%s]\n", __LINE__, __FUNCTION__, __FILE__)
 
 static int msg_open(devminor_t minor_dev_nr, int access,
 	endpoint_t user_endpt);
@@ -76,7 +76,7 @@ int main(void)
 
 	/* SEF local startup. */
 	sef_local_startup();
-
+FUNC_LOG();
 	/* Here is the main loop of the dma driver.  It waits for a message, 
 	   carries it out, and sends a reply. */
 	chardriver_task(&audio_tab);
@@ -200,7 +200,7 @@ static void sef_cb_signal_handler(int signo)
 static int msg_open(devminor_t minor_dev_nr, int UNUSED(access),
 	endpoint_t UNUSED(user_endpt))
 {
-	FUNC_LOG();
+FUNC_LOG();
 	int r, read_chan, write_chan, io_ctl;
 	special_file_t* special_file_ptr;
 
